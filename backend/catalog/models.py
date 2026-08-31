@@ -1,7 +1,11 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 
 from core.models import TimeStampedModel
+from core.validators import validate_image_file
 
 
 class ServiceCategory(TimeStampedModel):
@@ -32,14 +36,20 @@ class Service(TimeStampedModel):
     name = models.CharField(max_length=150)
     slug = models.SlugField(max_length=170, unique=True, blank=True)
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    duration_minutes = models.PositiveIntegerField()
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+    )
+    duration_minutes = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     buffer_minutes = models.PositiveIntegerField(
         null=True,
         blank=True,
         help_text="Blocks this much time after the appointment. Leave blank to use the business default.",
     )
-    image = models.ImageField(upload_to="services/", blank=True)
+    image = models.ImageField(
+        upload_to="services/", blank=True, validators=[validate_image_file]
+    )
     preparation_instructions = models.TextField(blank=True)
     cancellation_policy_notes = models.TextField(
         blank=True,
