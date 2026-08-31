@@ -1,160 +1,163 @@
-"""Stripe integration: starting a checkout attempt, applying verified
-webhook events, and refunding on cancellation. Views must go through these
-functions rather than calling the Stripe SDK directly, so every payment
-state change is validated, idempotent, and recorded the same way."""
+"""PixelPay integration: synchronously charging a card for a pending
+appointment, and flagging a cancelled paid appointment for a manual
+refund. Views must go through these functions rather than calling the
+PixelPay SDK directly.
+
+Unlike Stripe, PixelPay's Sale API has no browser-side tokenization
+option we could verify -- the official SDK is a server-side package that
+submits the raw card number, CVV, and expiry directly in the charge
+request. That means those fields necessarily pass through this backend
+in memory for the duration of one request. They are never logged or
+persisted; only the gateway's own transaction identifier is stored on
+Payment.
+
+Refunds are not automated here: voiding/refunding a PixelPay transaction
+requires a 128-character (SHA-512-length) void_signature whose derivation
+isn't documented anywhere reachable -- their docs site is a JS app that
+doesn't render for automated tools, and no formula appears in the
+official SDK source. Guessing at a security-relevant hash formula against
+a live payment API isn't an acceptable way to resolve that, so a
+cancelled paid appointment is flagged refund_pending instead, for the
+salon owner to refund manually from the PixelPay merchant dashboard."""
 
 import logging
-from decimal import ROUND_HALF_UP, Decimal
 
-import stripe
+import pixelpay
 from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
-from appointments.models import AppointmentStatus
+from appointments.models import Appointment, AppointmentStatus
 from appointments.services import transition_appointment
-from payments.models import Payment, PaymentStatus, StripeEvent
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
+from payments.models import Payment, PaymentStatus
 
 logger = logging.getLogger(__name__)
 
 
 class PaymentError(Exception):
-    """Raised when a checkout session or refund cannot be created for the
-    current state of an appointment/payment."""
+    """Raised when a charge can't even be attempted for the current state
+    of an appointment/payment -- not a card decline."""
 
 
-def _to_stripe_amount(amount):
-    # Stripe wants the smallest currency unit as an integer, never a float.
-    # Coerced through str() -> Decimal rather than trusting the caller
-    # already passed a Decimal (a DecimalField assigned a raw string, e.g.
-    # from an un-refreshed in-memory instance, stays a str in Python).
-    return int((Decimal(str(amount)) * 100).to_integral_value(rounding=ROUND_HALF_UP))
+class PaymentDeclinedError(Exception):
+    """Raised when PixelPay processed the request but didn't approve it
+    (bad card, insufficient funds, or invalid card/billing input). Safe to
+    show to the customer and let them retry."""
+
+    def __init__(self, message, errors=None):
+        super().__init__(message)
+        self.errors = errors
 
 
-def create_checkout_session(appointment):
-    """Starts an online-payment attempt for a pending appointment. Paying
-    online is optional: a customer may instead leave the appointment
-    pending for staff to confirm without payment (e.g. pay in person).
-    Returns the Stripe-hosted checkout URL to redirect the customer to."""
-
-    if appointment.status != AppointmentStatus.PENDING:
-        raise PaymentError("Esta cita no está pendiente de pago.")
-
-    payment, _ = Payment.objects.get_or_create(
-        appointment=appointment,
-        defaults={"amount": appointment.price_snapshot, "currency": "HNL"},
-    )
-    if payment.status == PaymentStatus.SUCCEEDED:
-        raise PaymentError("Esta cita ya fue pagada.")
-
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        payment_method_types=["card"],
-        customer_email=appointment.customer.email,
-        line_items=[
-            {
-                "price_data": {
-                    "currency": payment.currency.lower(),
-                    "product_data": {"name": appointment.service.name},
-                    "unit_amount": _to_stripe_amount(payment.amount),
-                },
-                "quantity": 1,
-            }
-        ],
-        success_url=f"{settings.FRONTEND_URL}/citas/{appointment.access_token}?pago=exitoso",
-        cancel_url=f"{settings.FRONTEND_URL}/citas/{appointment.access_token}?pago=cancelado",
-        metadata={"appointment_id": str(appointment.id), "payment_id": str(payment.id)},
-    )
-
-    payment.stripe_checkout_session_id = session.id
-    payment.status = PaymentStatus.PENDING
-    payment.save()
-    transition_appointment(appointment, AppointmentStatus.AWAITING_PAYMENT)
-
-    return session.url
+class PaymentGatewayError(Exception):
+    """Raised when PixelPay couldn't be reached, rejected our credentials,
+    or returned an unexpected error unrelated to the card itself."""
 
 
-def construct_event(payload, sig_header):
-    """Verifies a webhook request actually came from Stripe and returns the
-    event as a plain (JSON-serializable) dict. Raises ValueError or
-    stripe.SignatureVerificationError on a bad payload/signature -- the
-    webhook view treats both as an invalid request."""
+def _build_settings():
+    pp_settings = pixelpay.models.Settings()
+    if settings.PIXELPAY_SANDBOX:
+        pp_settings.setupSandbox()
+    else:
+        pp_settings.setupCredentials(settings.PIXELPAY_AUTH_KEY, settings.PIXELPAY_AUTH_HASH)
+        pp_settings.setupEndpoint(settings.PIXELPAY_ENDPOINT)
+    pp_settings.setupLanguage("es")
+    return pp_settings
 
-    event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
-    return event.to_dict()
 
+def charge_appointment(appointment, *, card, billing):
+    """Synchronously charges `card` for a pending appointment's full
+    price and, on approval, confirms it. `card` and `billing` are plain
+    dicts of the raw fields PixelPay's Sale API requires (see
+    payments.serializers.CardChargeSerializer) -- held only in local
+    variables for the duration of this call, never written to the
+    database or logged.
 
-def process_event(event):
-    """Applies one verified Stripe event. Idempotent: a replayed delivery
-    of the same event (Stripe retries on a non-2xx response, or can send a
-    duplicate) is a no-op after the first, tracked via
-    StripeEvent.stripe_event_id."""
+    Holds a row lock on the appointment for the duration of the (network)
+    call to PixelPay, deliberately: unlike a Stripe Checkout redirect,
+    this is the actual money-moving step, so a concurrent duplicate
+    submission (double-click, retried request) must be serialized here
+    rather than risking a real double charge.
+    """
 
     with transaction.atomic():
-        _, created = StripeEvent.objects.get_or_create(
-            stripe_event_id=event["id"],
-            defaults={"event_type": event["type"], "payload": event["data"]},
+        appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+        if appointment.status != AppointmentStatus.PENDING:
+            raise PaymentError("Esta cita no está pendiente de pago.")
+
+        payment, _ = Payment.objects.get_or_create(
+            appointment=appointment,
+            defaults={"amount": appointment.price_snapshot, "currency": "HNL"},
         )
-        if not created:
-            return
+        if payment.status == PaymentStatus.SUCCEEDED:
+            raise PaymentError("Esta cita ya fue pagada.")
 
-        if event["type"] == "checkout.session.completed":
-            _handle_checkout_completed(event["data"]["object"])
-        elif event["type"] == "checkout.session.expired":
-            _handle_checkout_expired(event["data"]["object"])
+        pp_card = pixelpay.models.Card()
+        pp_card.number = card["number"]
+        pp_card.cvv2 = card["cvv"]
+        pp_card.expire_month = card["expire_month"]
+        pp_card.expire_year = card["expire_year"]
+        pp_card.cardholder = card["cardholder"]
 
+        pp_billing = pixelpay.models.Billing()
+        pp_billing.address = billing["address"]
+        pp_billing.country = billing["country"]
+        pp_billing.state = billing["state"]
+        pp_billing.city = billing["city"]
+        pp_billing.zip = billing["zip"]
+        pp_billing.phone = billing["phone"]
 
-def _handle_checkout_completed(session):
-    try:
-        payment = Payment.objects.select_related("appointment").get(
-            stripe_checkout_session_id=session["id"]
+        order = pixelpay.models.Order()
+        order.id = f"LIRIOS-{appointment.id}"
+        order.currency = payment.currency
+        item = pixelpay.models.Item()
+        item.sku = str(appointment.service_id)
+        item.description = appointment.service.name
+        item.price = float(payment.amount)
+        item.qty = 1
+        order.addItem(item)
+        order.customer_name = appointment.customer.full_name
+        order.customer_email = appointment.customer.email
+
+        txn = pixelpay.requests.SaleTransaction()
+        txn.setCard(pp_card)
+        txn.setBilling(pp_billing)
+        txn.setOrder(order)
+
+        gateway = pixelpay.services.Transaction(_build_settings())
+        response = gateway.doSale(txn)
+
+        if isinstance(response, pixelpay.responses.SuccessResponse):
+            data = response.data or {}
+            payment.status = PaymentStatus.SUCCEEDED
+            payment.pixelpay_payment_uuid = data.get("payment_uuid", "")
+            payment.paid_at = timezone.now()
+            payment.save()
+            transition_appointment(appointment, AppointmentStatus.CONFIRMED)
+            return payment
+
+        if isinstance(
+            response, (pixelpay.responses.PaymentDeclinedResponse, pixelpay.responses.InputErrorResponse)
+        ):
+            raise PaymentDeclinedError(response.message or "El pago fue rechazado.", errors=response.errors)
+
+        logger.error(
+            "PixelPay gateway error charging appointment %s: %s (%s)",
+            appointment.id,
+            response.message,
+            type(response).__name__,
         )
-    except Payment.DoesNotExist:
-        return
-
-    payment.status = PaymentStatus.SUCCEEDED
-    payment.stripe_payment_intent_id = session.get("payment_intent") or ""
-    payment.paid_at = timezone.now()
-    payment.save()
-    transition_appointment(payment.appointment, AppointmentStatus.CONFIRMED)
+        raise PaymentGatewayError(response.message or "No se pudo procesar el pago.")
 
 
-def _handle_checkout_expired(session):
-    # The unpaid-hold grace window (BusinessSettings.unpaid_hold_minutes)
-    # already stops an expired hold from blocking availability -- this just
-    # keeps the Payment record honest for admin visibility.
-    Payment.objects.filter(
-        stripe_checkout_session_id=session["id"], status=PaymentStatus.PENDING
-    ).update(status=PaymentStatus.FAILED)
-
-
-def refund_payment(payment):
-    if payment.status != PaymentStatus.SUCCEEDED:
-        raise PaymentError("Solo se pueden reembolsar pagos exitosos.")
-
-    stripe.Refund.create(payment_intent=payment.stripe_payment_intent_id)
-
-    payment.status = PaymentStatus.REFUNDED
-    payment.refunded_amount = payment.amount
-    payment.save()
-
-
-def refund_if_paid(appointment):
-    """Called after a cancellation has already been approved and committed.
-    Unconditional at that point: for a customer, cancel_appointment() only
-    lets the cancellation succeed inside the allowed window in the first
-    place; for staff, cancelling a paid booking is the salon's own
-    decision. A Stripe-side failure here is logged rather than raised --
-    the cancellation itself must not be undone or reported as failed to the
-    caller just because the refund call didn't go through; staff can retry
-    the refund manually from the Stripe dashboard using paid_at/amount."""
+def flag_refund_needed(appointment):
+    """Called after a cancellation has already been approved and
+    committed. Does not call PixelPay -- see the module docstring for
+    why automated refunds aren't wired up yet. Marks the payment so staff
+    can see it needs a manual refund (Django admin, or the future admin
+    dashboard) and record it as done once completed."""
 
     payment = getattr(appointment, "payment", None)
-    if payment is None or payment.status != PaymentStatus.SUCCEEDED:
-        return
-    try:
-        refund_payment(payment)
-    except stripe.StripeError:
-        logger.exception("Stripe refund failed for appointment %s", appointment.id)
+    if payment is not None and payment.status == PaymentStatus.SUCCEEDED:
+        payment.status = PaymentStatus.REFUND_PENDING
+        payment.save()

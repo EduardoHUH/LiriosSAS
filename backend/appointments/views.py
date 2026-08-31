@@ -1,6 +1,5 @@
 from datetime import date
 
-import stripe
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -23,7 +22,14 @@ from appointments.services import (
     reschedule_appointment,
     transition_appointment,
 )
-from payments.services import PaymentError, create_checkout_session, refund_if_paid
+from payments.serializers import CardChargeSerializer
+from payments.services import (
+    PaymentDeclinedError,
+    PaymentError,
+    PaymentGatewayError,
+    charge_appointment,
+    flag_refund_needed,
+)
 
 
 class AppointmentCreateView(generics.CreateAPIView):
@@ -61,22 +67,45 @@ class AppointmentTokenViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
             cancel_appointment(appointment, reason=input_serializer.validated_data["reason"])
         except (CancellationPolicyError, InvalidTransitionError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        refund_if_paid(appointment)
+        flag_refund_needed(appointment)
         return Response(AppointmentCustomerSerializer(appointment).data)
 
     @action(detail=True, methods=["post"])
     def pay(self, request, token=None):
         appointment = self.get_object()
+        input_serializer = CardChargeSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        data = input_serializer.validated_data
+        card = {
+            "number": data["card_number"],
+            "cvv": data["card_cvv"],
+            "expire_month": data["card_expire_month"],
+            "expire_year": data["card_expire_year"],
+            "cardholder": data["cardholder"],
+        }
+        billing = {
+            "address": data["billing_address"],
+            "country": data["billing_country"],
+            "state": data["billing_state"],
+            "city": data["billing_city"],
+            "zip": data["billing_zip"],
+            "phone": data["billing_phone"],
+        }
         try:
-            checkout_url = create_checkout_session(appointment)
+            payment = charge_appointment(appointment, card=card, billing=billing)
         except PaymentError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.StripeError:
+        except PaymentDeclinedError as exc:
+            payload = {"detail": str(exc)}
+            if exc.errors:
+                payload["errors"] = exc.errors
+            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+        except PaymentGatewayError:
             return Response(
-                {"detail": "No se pudo iniciar el pago en este momento. Intenta de nuevo más tarde."},
+                {"detail": "No se pudo procesar el pago en este momento. Intenta de nuevo más tarde."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-        return Response({"checkout_url": checkout_url})
+        return Response(AppointmentCustomerSerializer(payment.appointment).data)
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, token=None):
@@ -173,7 +202,7 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
             )
         except InvalidTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        refund_if_paid(appointment)
+        flag_refund_needed(appointment)
         return Response(AppointmentAdminSerializer(appointment).data)
 
     @action(detail=True, methods=["post"])

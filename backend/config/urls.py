@@ -14,7 +14,6 @@ urlpatterns = [
     path("api/v1/admin/", include("scheduling.admin_urls")),
     path("api/v1/", include("appointments.urls")),
     path("api/v1/admin/", include("appointments.admin_urls")),
-    path("api/v1/", include("payments.urls")),
 ]
 
 if settings.DEBUG:

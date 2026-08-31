@@ -13,6 +13,7 @@ iniconfig==2.3.0
 mysqlclient==2.2.8
 packaging==26.3
 pillow==12.3.0
+pixelpay-sdk==2.2.5
 pluggy==1.6.0
 Pygments==2.21.0
 PyJWT==2.13.0
@@ -22,7 +23,5 @@ python-dateutil==2.9.0.post0
 requests==2.34.2
 six==1.17.0
 sqlparse==0.6.0
-stripe==15.6.0
-typing_extensions==4.16.0
 tzdata==2026.3
 urllib3==2.7.0

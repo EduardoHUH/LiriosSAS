@@ -167,17 +167,15 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
 
-# Used to build the Stripe Checkout success/cancel redirect URLs.
-FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
 
+# PixelPay
+# Sandbox mode uses PixelPay's own published sandbox credentials/endpoint
+# (see payments/services.py._build_settings) regardless of the key/hash
+# vars below, so the app is fully testable with no real credentials.
+# Switch PIXELPAY_SANDBOX to False and supply real credentials to charge
+# for real.
 
-# Stripe
-# Secret key authenticates server-to-server API calls (checkout session
-# creation, refunds). Webhook secret verifies that a webhook request
-# genuinely came from Stripe (see payments/services.py). Both are blank by
-# default so the app still runs without them -- only real Stripe API calls
-# will fail, which the payments test suite avoids by mocking the SDK.
-
-STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
-STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
-STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
+PIXELPAY_SANDBOX = env.bool("PIXELPAY_SANDBOX", default=True)
+PIXELPAY_AUTH_KEY = env("PIXELPAY_AUTH_KEY", default="")
+PIXELPAY_AUTH_HASH = env("PIXELPAY_AUTH_HASH", default="")
+PIXELPAY_ENDPOINT = env("PIXELPAY_ENDPOINT", default="https://pixelpay.app")
