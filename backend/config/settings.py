@@ -4,6 +4,7 @@ Django settings for the Lirios SAAS backend.
 See https://docs.djangoproject.com/en/6.1/topics/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -30,8 +31,10 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "core",
+    "accounts",
     "customers",
     "catalog",
     "scheduling",
@@ -124,15 +127,29 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django REST Framework
 # Secure-by-default: every endpoint requires authentication unless a view
-# explicitly opts into a public permission class.
+# explicitly opts into a public permission class. Authentication is JWT
+# bearer tokens only (no session/cookie auth for the API) since the
+# frontend and backend live on different domains. Django's own /admin/
+# site is unaffected -- it uses its own session-based login separately.
 
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/min",
+    },
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
 }
 
 
