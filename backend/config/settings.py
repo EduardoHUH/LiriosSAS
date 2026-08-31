@@ -166,3 +166,18 @@ SIMPLE_JWT = {
 # Only the deployed frontend (and local dev server) may call this API from a browser.
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
+
+# Used to build the Stripe Checkout success/cancel redirect URLs.
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+
+
+# Stripe
+# Secret key authenticates server-to-server API calls (checkout session
+# creation, refunds). Webhook secret verifies that a webhook request
+# genuinely came from Stripe (see payments/services.py). Both are blank by
+# default so the app still runs without them -- only real Stripe API calls
+# will fail, which the payments test suite avoids by mocking the SDK.
+
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")

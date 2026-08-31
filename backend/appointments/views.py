@@ -1,5 +1,6 @@
 from datetime import date
 
+import stripe
 from rest_framework import generics, mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser
@@ -22,6 +23,7 @@ from appointments.services import (
     reschedule_appointment,
     transition_appointment,
 )
+from payments.services import PaymentError, create_checkout_session, refund_if_paid
 
 
 class AppointmentCreateView(generics.CreateAPIView):
@@ -59,7 +61,22 @@ class AppointmentTokenViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
             cancel_appointment(appointment, reason=input_serializer.validated_data["reason"])
         except (CancellationPolicyError, InvalidTransitionError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        refund_if_paid(appointment)
         return Response(AppointmentCustomerSerializer(appointment).data)
+
+    @action(detail=True, methods=["post"])
+    def pay(self, request, token=None):
+        appointment = self.get_object()
+        try:
+            checkout_url = create_checkout_session(appointment)
+        except PaymentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.StripeError:
+            return Response(
+                {"detail": "No se pudo iniciar el pago en este momento. Intenta de nuevo más tarde."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response({"checkout_url": checkout_url})
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, token=None):
@@ -156,6 +173,7 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
             )
         except InvalidTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        refund_if_paid(appointment)
         return Response(AppointmentAdminSerializer(appointment).data)
 
     @action(detail=True, methods=["post"])
