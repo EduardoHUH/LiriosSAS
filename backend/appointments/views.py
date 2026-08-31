@@ -133,7 +133,7 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
         return AppointmentAdminSerializer
 
     def get_queryset(self):
-        queryset = Appointment.objects.select_related("service", "customer").all()
+        queryset = Appointment.objects.select_related("service", "customer", "payment").all()
         params = self.request.query_params
 
         status_param = params.get("status")

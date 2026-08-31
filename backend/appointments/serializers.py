@@ -4,6 +4,7 @@ from appointments.models import Appointment
 from appointments.services import create_appointment
 from catalog.models import Service
 from catalog.serializers import ServicePublicSerializer
+from payments.serializers import PaymentSummarySerializer
 from scheduling.availability import is_slot_available
 
 
@@ -93,6 +94,13 @@ class AppointmentAdminSerializer(serializers.ModelSerializer):
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    payment = serializers.SerializerMethodField()
+
+    def get_payment(self, obj):
+        payment = getattr(obj, "payment", None)
+        if payment is None:
+            return None
+        return PaymentSummarySerializer(payment).data
 
     class Meta:
         model = Appointment

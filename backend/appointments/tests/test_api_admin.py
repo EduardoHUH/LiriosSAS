@@ -155,6 +155,31 @@ def test_admin_detail_includes_admin_notes_and_customer_contact(staff_client, ap
 
 
 @pytest.mark.django_db
+def test_admin_detail_includes_null_payment_when_none_exists(staff_client, appointment):
+    response = staff_client.get(f"/api/v1/admin/appointments/{appointment.id}/")
+
+    assert response.data["payment"] is None
+
+
+@pytest.mark.django_db
+def test_admin_detail_includes_payment_summary_when_one_exists(staff_client, appointment):
+    from payments.models import Payment, PaymentStatus
+
+    Payment.objects.create(
+        appointment=appointment,
+        amount=appointment.price_snapshot,
+        currency="HNL",
+        status=PaymentStatus.SUCCEEDED,
+        pixelpay_payment_uuid="S-test-uuid",
+    )
+
+    response = staff_client.get(f"/api/v1/admin/appointments/{appointment.id}/")
+
+    assert response.data["payment"]["status"] == PaymentStatus.SUCCEEDED
+    assert response.data["payment"]["pixelpay_payment_uuid"] == "S-test-uuid"
+
+
+@pytest.mark.django_db
 def test_admin_patch_can_only_edit_notes_not_status(staff_client, appointment):
     response = staff_client.patch(
         f"/api/v1/admin/appointments/{appointment.id}/",

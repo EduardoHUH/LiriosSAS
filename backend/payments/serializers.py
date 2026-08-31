@@ -1,5 +1,29 @@
 from rest_framework import serializers
 
+from payments.models import Payment
+
+
+class PaymentSummarySerializer(serializers.ModelSerializer):
+    """Read-only payment summary nested into AppointmentAdminSerializer for
+    the admin dashboard's "payment inspection" view. Never used
+    customer-facing."""
+
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "status",
+            "status_display",
+            "amount",
+            "currency",
+            "paid_at",
+            "refunded_amount",
+            "pixelpay_payment_uuid",
+        ]
+        read_only_fields = fields
+
 
 class CardChargeSerializer(serializers.Serializer):
     """Input for the appointment `pay` action. PixelPay's Sale API takes
