@@ -139,6 +139,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    # JSON only by default. DRF's BooleanField treats a missing key as an
+    # unchecked HTML checkbox (silently False) under form/multipart parsing,
+    # which would let a client silently disable e.g. is_active by omitting
+    # it. Multipart is opted back in explicitly only on the one view that
+    # needs file uploads (ServiceAdminViewSet).
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+    ],
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_THROTTLE_RATES": {
         "login": "5/min",
     },
