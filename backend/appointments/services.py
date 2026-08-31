@@ -12,6 +12,12 @@ from django.utils import timezone
 from appointments.models import Appointment, AppointmentStatus
 from core.models import BusinessSettings
 from customers.models import Customer
+from notifications.services import (
+    send_admin_new_booking_alert,
+    send_booking_received_email,
+    send_cancellation_email,
+    send_reschedule_email,
+)
 from scheduling.availability import is_slot_available
 
 
@@ -118,6 +124,11 @@ def create_appointment(*, service, start_datetime, customer_data, customer_notes
             duration_minutes_snapshot=service.duration_minutes,
             customer_notes=customer_notes,
         )
+
+    # Sent after the transaction commits -- a rollback above must never be
+    # followed by an email describing a booking that doesn't actually exist.
+    send_booking_received_email(appointment)
+    send_admin_new_booking_alert(appointment)
     return appointment
 
 
@@ -135,7 +146,9 @@ def cancel_appointment(appointment, *, reason="", enforce_deadline=True):
             raise CancellationPolicyError(
                 "Ya no es posible cancelar esta cita: se superó el plazo permitido."
             )
-    return transition_appointment(appointment, AppointmentStatus.CANCELLED, reason=reason)
+    transition_appointment(appointment, AppointmentStatus.CANCELLED, reason=reason)
+    send_cancellation_email(appointment)
+    return appointment
 
 
 def reschedule_appointment(appointment, new_start_datetime, *, enforce_policy=True):
@@ -166,4 +179,6 @@ def reschedule_appointment(appointment, new_start_datetime, *, enforce_policy=Tr
         )
         appointment.reschedule_count += 1
         transition_appointment(appointment, AppointmentStatus.CONFIRMED)
+
+    send_reschedule_email(appointment)
     return appointment

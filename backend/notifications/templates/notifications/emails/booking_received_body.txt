@@ -1,0 +1,10 @@
+Hola {{ customer.full_name }},
+
+Recibimos tu solicitud de cita para {{ service.name }} el {{ start_local|date:"l j" }} de {{ start_local|date:"F" }} a las {{ start_local|date:"H:i" }}.
+
+Tu cita quedará confirmada cuando completes el pago en línea o cuando nuestro equipo la confirme manualmente.
+
+Puedes ver los detalles de tu cita, pagar o cancelarla aquí:
+{{ manage_url }}
+
+¡Gracias por elegir {{ business_name }}!

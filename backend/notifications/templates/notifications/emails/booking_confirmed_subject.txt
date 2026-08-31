@@ -1,0 +1,1 @@
+{{ business_name }}: tu cita quedó confirmada

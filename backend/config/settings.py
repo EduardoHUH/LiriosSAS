@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "anymail",
     "core",
     "accounts",
     "customers",
@@ -150,6 +151,7 @@ REST_FRAMEWORK = {
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
     "DEFAULT_THROTTLE_RATES": {
         "login": "5/min",
+        "password_reset": "5/min",
     },
 }
 
@@ -166,6 +168,25 @@ SIMPLE_JWT = {
 # Only the deployed frontend (and local dev server) may call this API from a browser.
 
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:5173"])
+
+# Used to build links back to the app in emails (booking management link,
+# password reset link).
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:5173")
+
+
+# Email
+# SendGrid via django-anymail. Falls back to Django's console backend (prints
+# instead of sending) when no API key is configured, so the app runs and
+# tests pass with no real credentials -- only actual delivery needs one.
+
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Lirios <no-reply@lirios.hn>")
+SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")
+
+if SENDGRID_API_KEY:
+    EMAIL_BACKEND = "anymail.backends.sendgrid.EmailBackend"
+    ANYMAIL = {"SENDGRID_API_KEY": SENDGRID_API_KEY}
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # PixelPay

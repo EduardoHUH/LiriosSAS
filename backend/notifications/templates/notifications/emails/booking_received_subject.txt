@@ -1,0 +1,1 @@
+{{ business_name }}: recibimos tu solicitud de cita

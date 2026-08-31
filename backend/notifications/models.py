@@ -11,6 +11,7 @@ class NotificationType(models.TextChoices):
     RESCHEDULE = "reschedule", "Reprogramación"
     REMINDER = "reminder", "Recordatorio"
     ADMIN_ALERT = "admin_alert", "Alerta administrativa"
+    PASSWORD_RESET = "password_reset", "Restablecimiento de contraseña"
 
 
 class NotificationChannel(models.TextChoices):

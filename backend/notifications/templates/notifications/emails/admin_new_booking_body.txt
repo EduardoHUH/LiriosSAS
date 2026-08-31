@@ -1,0 +1,7 @@
+Nueva reserva recibida.
+
+Cliente: {{ customer.full_name }} ({{ customer.email }}, {{ customer.phone }})
+Servicio: {{ service.name }}
+Fecha: {{ start_local|date:"l j" }} de {{ start_local|date:"F" }} a las {{ start_local|date:"H:i" }}
+Precio: L {{ appointment.price_snapshot }}
+Estado: {{ appointment.get_status_display }}

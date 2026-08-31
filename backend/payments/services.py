@@ -29,6 +29,7 @@ from django.utils import timezone
 
 from appointments.models import Appointment, AppointmentStatus
 from appointments.services import transition_appointment
+from notifications.services import send_payment_confirmed_email
 from payments.models import Payment, PaymentStatus
 
 logger = logging.getLogger(__name__)
@@ -134,20 +135,23 @@ def charge_appointment(appointment, *, card, billing):
             payment.paid_at = timezone.now()
             payment.save()
             transition_appointment(appointment, AppointmentStatus.CONFIRMED)
-            return payment
-
-        if isinstance(
+        elif isinstance(
             response, (pixelpay.responses.PaymentDeclinedResponse, pixelpay.responses.InputErrorResponse)
         ):
             raise PaymentDeclinedError(response.message or "El pago fue rechazado.", errors=response.errors)
+        else:
+            logger.error(
+                "PixelPay gateway error charging appointment %s: %s (%s)",
+                appointment.id,
+                response.message,
+                type(response).__name__,
+            )
+            raise PaymentGatewayError(response.message or "No se pudo procesar el pago.")
 
-        logger.error(
-            "PixelPay gateway error charging appointment %s: %s (%s)",
-            appointment.id,
-            response.message,
-            type(response).__name__,
-        )
-        raise PaymentGatewayError(response.message or "No se pudo procesar el pago.")
+    # Sent after the transaction commits -- a rollback above (decline,
+    # gateway error) must never be followed by a "you paid" email.
+    send_payment_confirmed_email(payment.appointment)
+    return payment
 
 
 def flag_refund_needed(appointment):

@@ -22,6 +22,7 @@ from appointments.services import (
     reschedule_appointment,
     transition_appointment,
 )
+from notifications.services import send_booking_confirmed_email
 from payments.serializers import CardChargeSerializer
 from payments.services import (
     PaymentDeclinedError,
@@ -187,6 +188,7 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
             transition_appointment(appointment, AppointmentStatus.CONFIRMED)
         except InvalidTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        send_booking_confirmed_email(appointment)
         return Response(AppointmentAdminSerializer(appointment).data)
 
     @action(detail=True, methods=["post"])

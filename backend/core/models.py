@@ -38,6 +38,10 @@ class BusinessSettings(TimeStampedModel):
         default=10,
         help_text="Used when a service does not set its own buffer_minutes.",
     )
+    reminder_hours_before = models.PositiveIntegerField(
+        default=24,
+        help_text="How long before start_datetime a confirmed appointment's reminder email goes out.",
+    )
     is_accepting_bookings = models.BooleanField(
         default=True,
         help_text="Global switch to pause new bookings without a deploy.",

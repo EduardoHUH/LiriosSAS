@@ -1,0 +1,1 @@
+Nueva reserva: {{ service.name }} - {{ customer.full_name }}
