@@ -11,6 +11,8 @@ urlpatterns = [
     path("api/v1/admin/", include("catalog.admin_urls")),
     path("api/v1/", include("scheduling.urls")),
     path("api/v1/admin/", include("scheduling.admin_urls")),
+    path("api/v1/", include("appointments.urls")),
+    path("api/v1/admin/", include("appointments.admin_urls")),
 ]
 
 if settings.DEBUG:

@@ -76,6 +76,9 @@ class Appointment(TimeStampedModel):
 
     cancelled_at = models.DateTimeField(null=True, blank=True)
     cancellation_reason = models.CharField(max_length=255, blank=True)
+    reschedule_count = models.PositiveIntegerField(
+        default=0, help_text="One free customer-initiated reschedule is allowed; further changes require staff."
+    )
 
     class Meta:
         verbose_name = "Cita"

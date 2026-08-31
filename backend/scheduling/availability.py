@@ -77,7 +77,7 @@ def _blocked_ranges_for_date(local_date):
     ]
 
 
-def _busy_appointment_ranges_for_date(local_date, buffer_minutes):
+def _busy_appointment_ranges_for_date(local_date, buffer_minutes, exclude_appointment_id=None):
     day_start, day_end = _day_bounds(local_date)
     hold_cutoff = timezone.now() - timedelta(
         minutes=BusinessSettings.load().unpaid_hold_minutes
@@ -89,6 +89,8 @@ def _busy_appointment_ranges_for_date(local_date, buffer_minutes):
         start_datetime__lt=day_end,
         end_datetime__gt=day_start,
     )
+    if exclude_appointment_id is not None:
+        appointments = appointments.exclude(pk=exclude_appointment_id)
     buffer = timedelta(minutes=buffer_minutes)
     return [(a.start_datetime, a.end_datetime + buffer) for a in appointments]
 
@@ -113,11 +115,15 @@ def _subtract_ranges(intervals, exclusions):
     return result
 
 
-def get_available_slots(service, local_date):
+def get_available_slots(service, local_date, *, exclude_appointment_id=None):
     """Returns a sorted list of timezone-aware datetimes on local_date at
     which `service` can be booked, given business hours, holidays/special
     dates, blocked time, existing appointments (with buffer), the global
-    accepting-bookings switch, and the min-notice/max-window rules."""
+    accepting-bookings switch, and the min-notice/max-window rules.
+
+    exclude_appointment_id lets a reschedule re-check availability for a
+    new time without the appointment's own current slot counting as busy
+    against itself."""
 
     settings_obj = BusinessSettings.load()
     if not settings_obj.is_accepting_bookings:
@@ -141,7 +147,7 @@ def get_available_slots(service, local_date):
 
     buffer_minutes = _effective_buffer(service)
     exclusions = _blocked_ranges_for_date(local_date) + _busy_appointment_ranges_for_date(
-        local_date, buffer_minutes
+        local_date, buffer_minutes, exclude_appointment_id=exclude_appointment_id
     )
     free_intervals = _subtract_ranges(open_intervals, exclusions)
 
@@ -159,10 +165,14 @@ def get_available_slots(service, local_date):
     return slots
 
 
-def is_slot_available(service, start_datetime):
+def is_slot_available(service, start_datetime, *, exclude_appointment_id=None):
     """Re-validates one specific candidate slot against the same rules used
     to advertise availability. Used at booking-creation time so a client
-    can't request a start time that was never actually offered."""
+    can't request a start time that was never actually offered, and at
+    reschedule time (with exclude_appointment_id set) to check a new time
+    without the appointment's own current slot blocking itself."""
 
     local_date = timezone.localtime(start_datetime).date()
-    return start_datetime in get_available_slots(service, local_date)
+    return start_datetime in get_available_slots(
+        service, local_date, exclude_appointment_id=exclude_appointment_id
+    )
