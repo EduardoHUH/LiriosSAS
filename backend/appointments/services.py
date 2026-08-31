@@ -36,9 +36,12 @@ class CancellationPolicyError(Exception):
 
 
 # Explicit state machine: do not allow arbitrary status transitions.
-# PENDING -> CONFIRMED exists for staff manually confirming a
-# walk-in/phone booking without Stripe; PENDING -> AWAITING_PAYMENT ->
-# CONFIRMED is the online-payment path Stripe integration drives.
+# PENDING -> CONFIRMED covers both a staff-confirmed
+# walk-in/phone booking and PixelPay's synchronous online charge (see
+# payments/services.py). PENDING -> AWAITING_PAYMENT -> CONFIRMED is not
+# currently used by any code path -- it's kept for a future async
+# payment method (e.g. bank transfer, or a redirect-based gateway step)
+# that needs a distinct "payment in progress" state.
 ALLOWED_TRANSITIONS = {
     AppointmentStatus.PENDING: {
         AppointmentStatus.AWAITING_PAYMENT,
