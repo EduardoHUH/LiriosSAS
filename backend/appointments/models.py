@@ -21,6 +21,27 @@ class AppointmentStatus(models.TextChoices):
     RESCHEDULE_REQUESTED = "reschedule_requested", "Reprogramación solicitada"
 
 
+# Statuses that represent an appointment still holding its calendar slot.
+# Single source of truth for both the availability engine (a slot in one of
+# these statuses is unavailable to others) and, later, the booking-creation
+# overlap check -- so the two can never drift apart on what counts as "busy".
+BLOCKING_APPOINTMENT_STATUSES = [
+    AppointmentStatus.PENDING,
+    AppointmentStatus.AWAITING_PAYMENT,
+    AppointmentStatus.CONFIRMED,
+    AppointmentStatus.RESCHEDULE_REQUESTED,
+]
+
+# Of those, PENDING/AWAITING_PAYMENT only hold the slot for a limited grace
+# window (BusinessSettings.unpaid_hold_minutes) while the customer completes
+# checkout -- past that, they stop blocking availability even before a
+# cleanup job gets around to marking them cancelled.
+UNPAID_HOLD_STATUSES = [
+    AppointmentStatus.PENDING,
+    AppointmentStatus.AWAITING_PAYMENT,
+]
+
+
 class Appointment(TimeStampedModel):
     customer = models.ForeignKey(
         Customer, on_delete=models.PROTECT, related_name="appointments"
