@@ -31,6 +31,8 @@ from payments.services import (
     charge_appointment,
     flag_refund_needed,
 )
+from reviews.serializers import ReviewCreateSerializer
+from reviews.services import ReviewNotAllowedError, create_review_for_appointment
 
 
 class AppointmentCreateView(generics.CreateAPIView):
@@ -122,6 +124,19 @@ class AppointmentTokenViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
         except SlotNotAvailableError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         return Response(AppointmentCustomerSerializer(appointment).data)
+
+    @action(detail=True, methods=["post"])
+    def review(self, request, token=None):
+        appointment = self.get_object()
+        input_serializer = ReviewCreateSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        try:
+            create_review_for_appointment(appointment, **input_serializer.validated_data)
+        except ReviewNotAllowedError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            AppointmentCustomerSerializer(appointment).data, status=status.HTTP_201_CREATED
+        )
 
 
 class AppointmentAdminViewSet(viewsets.ModelViewSet):

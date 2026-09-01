@@ -5,6 +5,7 @@ from appointments.services import create_appointment
 from catalog.models import Service
 from catalog.serializers import ServicePublicSerializer
 from payments.serializers import PaymentSummarySerializer
+from reviews.serializers import ReviewSummarySerializer
 from scheduling.availability import is_slot_available
 
 
@@ -59,6 +60,7 @@ class AppointmentCustomerSerializer(serializers.ModelSerializer):
 
     service = ServicePublicSerializer(read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
+    review = ReviewSummarySerializer(read_only=True)
 
     class Meta:
         model = Appointment
@@ -76,6 +78,7 @@ class AppointmentCustomerSerializer(serializers.ModelSerializer):
             "cancelled_at",
             "cancellation_reason",
             "created_at",
+            "review",
         ]
         read_only_fields = fields
 
