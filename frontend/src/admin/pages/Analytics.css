@@ -1,0 +1,27 @@
+.analytics__filters {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.analytics__panels {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  transition: opacity var(--duration-hover) var(--ease-out);
+}
+
+.analytics__panel-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--color-ink);
+  margin-bottom: 4px;
+}
+
+.analytics__panel-subtitle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-ink-soft);
+  margin-bottom: 16px;
+}

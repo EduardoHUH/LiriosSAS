@@ -1,0 +1,80 @@
+.admin-status {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-ink-soft);
+}
+
+.admin-status--error {
+  color: var(--color-blush);
+}
+
+.admin-page-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--color-ink);
+  margin-bottom: 24px;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.admin-stat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  background: var(--color-cream-white);
+  border: 1px solid var(--color-border);
+}
+
+.admin-stat-tile__label {
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.admin-stat-tile__value {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--color-ink);
+}
+
+.admin-panel {
+  padding: 24px;
+  border-radius: var(--radius-md);
+  background: var(--color-cream-white);
+  border: 1px solid var(--color-border);
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.admin-field input,
+.admin-field select {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-ink);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: white;
+}
+
+.admin-field input:focus,
+.admin-field select:focus {
+  outline: 2px solid var(--color-sage);
+  outline-offset: 1px;
+}
