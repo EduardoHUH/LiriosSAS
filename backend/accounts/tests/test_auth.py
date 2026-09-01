@@ -44,6 +44,9 @@ def test_staff_login_returns_access_and_refresh_tokens(staff_user):
     assert "refresh" in response.data
 
 
+SPANISH_NO_ACCOUNT_MESSAGE = "No se encontró una cuenta activa con las credenciales proporcionadas."
+
+
 @pytest.mark.django_db
 def test_login_rejects_non_staff_user(regular_user):
     client = APIClient()
@@ -54,6 +57,7 @@ def test_login_rejects_non_staff_user(regular_user):
 
     assert response.status_code == 401
     assert "access" not in response.data
+    assert response.data["detail"] == SPANISH_NO_ACCOUNT_MESSAGE
 
 
 @pytest.mark.django_db
@@ -63,6 +67,20 @@ def test_login_rejects_wrong_password(staff_user):
     response = client.post(LOGIN_URL, {"username": "admin", "password": "wrong"})
 
     assert response.status_code == 401
+    assert response.data["detail"] == SPANISH_NO_ACCOUNT_MESSAGE
+
+
+@pytest.mark.django_db
+def test_login_rejects_nonexistent_username():
+    """Regression test: SimpleJWT's own credential check used to raise its
+    English default message here, before StaffTokenObtainPairSerializer's
+    own (Spanish) non-staff check ever ran -- both paths must now agree."""
+    client = APIClient()
+
+    response = client.post(LOGIN_URL, {"username": "no-existe", "password": "wrong"})
+
+    assert response.status_code == 401
+    assert response.data["detail"] == SPANISH_NO_ACCOUNT_MESSAGE
 
 
 @pytest.mark.django_db
