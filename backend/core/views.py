@@ -4,7 +4,11 @@ from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 
 from core.models import BusinessSettings
-from core.serializers import BusinessSettingsAdminSerializer, DashboardOverviewSerializer
+from core.serializers import (
+    BusinessSettingsAdminSerializer,
+    BusinessSettingsPublicSerializer,
+    DashboardOverviewSerializer,
+)
 from core.services import get_dashboard_overview
 
 
@@ -17,6 +21,14 @@ def health_check(request):
 class BusinessSettingsAdminView(generics.RetrieveUpdateAPIView):
     serializer_class = BusinessSettingsAdminSerializer
     permission_classes = [IsAdminUser]
+
+    def get_object(self):
+        return BusinessSettings.load()
+
+
+class BusinessSettingsPublicView(generics.RetrieveAPIView):
+    serializer_class = BusinessSettingsPublicSerializer
+    permission_classes = [AllowAny]
 
     def get_object(self):
         return BusinessSettings.load()

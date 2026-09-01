@@ -10,6 +10,28 @@ class BusinessSettingsAdminSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
+class BusinessSettingsPublicSerializer(serializers.ModelSerializer):
+    """Curated subset of BusinessSettings safe to expose to the public
+    website -- excludes reminder_hours_before (internal scheduling detail)
+    and the timestamp/id fields, alongside every other admin-only field."""
+
+    class Meta:
+        model = BusinessSettings
+        fields = [
+            "business_name",
+            "contact_email",
+            "contact_phone",
+            "address",
+            "social_links",
+            "min_booking_notice_hours",
+            "max_booking_window_days",
+            "cancellation_deadline_hours",
+            "unpaid_hold_minutes",
+            "default_buffer_minutes",
+            "is_accepting_bookings",
+        ]
+
+
 class DashboardOverviewSerializer(serializers.Serializer):
     """Not a ModelSerializer -- this is a plain aggregate, not one model's
     fields. DecimalField (rather than a bare float) matters here the same
