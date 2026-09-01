@@ -57,6 +57,15 @@ export type AppointmentStatus =
   | 'no_show'
   | 'reschedule_requested'
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected'
+
+export interface ReviewSummary {
+  rating: number
+  comment: string
+  status: ReviewStatus
+  created_at: string
+}
+
 export interface Appointment {
   id: number
   access_token: string
@@ -71,6 +80,28 @@ export interface Appointment {
   cancelled_at: string | null
   cancellation_reason: string
   created_at: string
+  review: ReviewSummary | null
+}
+
+export interface GalleryItem {
+  id: number
+  image: string
+  category: Category | null
+  caption: string
+  display_order: number
+}
+
+export interface Review {
+  id: number
+  reviewer_name: string
+  rating: number
+  comment: string
+  created_at: string
+}
+
+export interface ReviewInput {
+  rating: number
+  comment?: string
 }
 
 export interface CustomerInput {

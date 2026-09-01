@@ -15,7 +15,7 @@ export default function Footer() {
       <div className="footer__meta">
         <nav className="footer__links">
           <Link to="/servicios">Servicios</Link>
-          <Link to="/#galeria">Galería</Link>
+          <Link to="/galeria">Galería</Link>
         </nav>
         <span className="footer__copyright">© {new Date().getFullYear()} Lirios</span>
       </div>

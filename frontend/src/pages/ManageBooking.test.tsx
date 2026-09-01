@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import ManageBooking from './ManageBooking'
-import { cancelAppointment, getAppointment } from '../api/appointments'
+import { cancelAppointment, getAppointment, submitReview } from '../api/appointments'
 import type { Appointment, Service } from '../types/api'
 
 vi.mock('../api/appointments')
@@ -12,6 +12,7 @@ vi.mock('../api/businessSettings')
 
 const mockedGetAppointment = vi.mocked(getAppointment)
 const mockedCancelAppointment = vi.mocked(cancelAppointment)
+const mockedSubmitReview = vi.mocked(submitReview)
 
 const SERVICE: Service = {
   id: 1,
@@ -42,6 +43,7 @@ const APPOINTMENT: Appointment = {
   cancelled_at: null,
   cancellation_reason: '',
   created_at: '2026-09-01T00:00:00-06:00',
+  review: null,
 }
 
 function renderAt(token: string) {
@@ -97,5 +99,46 @@ describe('ManageBooking page', () => {
     renderAt('does-not-exist')
 
     expect(await screen.findByText('No encontrado.')).toBeInTheDocument()
+  })
+
+  it('offers a review form for a completed appointment with no review yet', async () => {
+    mockedGetAppointment.mockResolvedValue({
+      ...APPOINTMENT,
+      status: 'completed',
+      status_display: 'Completada',
+    })
+
+    renderAt('abc123')
+
+    expect(await screen.findByText('Deja tu reseña')).toBeInTheDocument()
+  })
+
+  it('submits a review and shows the pending summary instead of the form', async () => {
+    const user = userEvent.setup()
+    const completed: Appointment = { ...APPOINTMENT, status: 'completed', status_display: 'Completada' }
+    mockedGetAppointment.mockResolvedValue(completed)
+    mockedSubmitReview.mockResolvedValue({
+      ...completed,
+      review: { rating: 5, comment: 'Excelente', status: 'pending', created_at: '2026-09-05T00:00:00-06:00' },
+    })
+
+    renderAt('abc123')
+
+    await screen.findByText('Deja tu reseña')
+    await user.click(screen.getByRole('radio', { name: '5 de 5 estrellas' }))
+    await user.click(screen.getByRole('button', { name: 'Enviar reseña' }))
+
+    expect(mockedSubmitReview).toHaveBeenCalledWith('abc123', { rating: 5, comment: '' })
+    expect(await screen.findByText('Pendiente de aprobación')).toBeInTheDocument()
+    expect(screen.queryByText('Deja tu reseña')).not.toBeInTheDocument()
+  })
+
+  it('does not offer a review form for an appointment that is not completed', async () => {
+    mockedGetAppointment.mockResolvedValue(APPOINTMENT)
+
+    renderAt('abc123')
+
+    await screen.findByText('Manicure en gel')
+    expect(screen.queryByText('Deja tu reseña')).not.toBeInTheDocument()
   })
 })

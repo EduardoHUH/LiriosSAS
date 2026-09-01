@@ -62,6 +62,7 @@ const APPOINTMENT: Appointment = {
   cancelled_at: null,
   cancellation_reason: '',
   created_at: '2026-09-01T00:00:00-06:00',
+  review: null,
 }
 
 function renderBooking() {

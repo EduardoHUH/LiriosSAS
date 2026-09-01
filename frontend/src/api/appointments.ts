@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Appointment, CreateAppointmentInput, PaymentInput } from '../types/api'
+import type { Appointment, CreateAppointmentInput, PaymentInput, ReviewInput } from '../types/api'
 
 export async function createAppointment(input: CreateAppointmentInput): Promise<Appointment> {
   const response = await apiClient.post<Appointment>('/appointments/', input)
@@ -36,5 +36,13 @@ export async function payAppointment(
   payload: PaymentInput,
 ): Promise<Appointment> {
   const response = await apiClient.post<Appointment>(`/appointments/${accessToken}/pay/`, payload)
+  return response.data
+}
+
+export async function submitReview(
+  accessToken: string,
+  input: ReviewInput,
+): Promise<Appointment> {
+  const response = await apiClient.post<Appointment>(`/appointments/${accessToken}/review/`, input)
   return response.data
 }

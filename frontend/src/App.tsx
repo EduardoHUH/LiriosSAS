@@ -5,6 +5,7 @@ import Services from './pages/Services'
 import ServiceDetail from './pages/ServiceDetail'
 import Booking from './pages/Booking'
 import ManageBooking from './pages/ManageBooking'
+import Gallery from './pages/Gallery'
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/servicios/:slug" element={<ServiceDetail />} />
           <Route path="/reservar" element={<Booking />} />
           <Route path="/citas/:accessToken" element={<ManageBooking />} />
+          <Route path="/galeria" element={<Gallery />} />
         </Route>
       </Routes>
     </BrowserRouter>

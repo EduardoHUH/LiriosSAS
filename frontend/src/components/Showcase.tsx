@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react'
+import { Link } from 'react-router-dom'
 import PlaceholderImage from './PlaceholderImage'
 import './Showcase.css'
 
@@ -13,13 +14,15 @@ export default function Showcase() {
   const reducedMotion = useReducedMotion()
 
   return (
-    <section id="galeria" className="showcase">
+    <section className="showcase">
       <motion.div className="showcase__header" {...fadeUp(reducedMotion)}>
         <div className="showcase__intro">
           <span className="showcase__eyebrow">Nuestro trabajo</span>
           <h2 className="showcase__headline">Cada trazo, con intención.</h2>
         </div>
-        <span className="showcase__link">Ver galería completa</span>
+        <Link to="/galeria" className="showcase__link">
+          Ver galería completa
+        </Link>
       </motion.div>
 
       <div className="showcase__composition">

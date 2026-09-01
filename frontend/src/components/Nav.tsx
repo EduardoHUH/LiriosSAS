@@ -28,7 +28,7 @@ export default function Nav({ variant = 'solid' }: NavProps) {
       </Link>
       <nav className="nav__links">
         <Link to="/servicios">Servicios</Link>
-        <Link to="/#galeria">Galería</Link>
+        <Link to="/galeria">Galería</Link>
         <Button variant={isTransparent ? 'glass' : 'solid'} to="/reservar">
           Reservar cita
         </Button>

@@ -7,6 +7,7 @@ import { formatMoney } from '../utils/formatMoney'
 import Button from '../components/Button'
 import DateTimeStep from '../components/booking/DateTimeStep'
 import PaymentForm from '../components/booking/PaymentForm'
+import ReviewForm from '../components/ReviewForm'
 import type { Appointment } from '../types/api'
 import './ManageBooking.css'
 
@@ -166,6 +167,14 @@ export default function ManageBooking() {
       )}
 
       {actionError && <p className="manage-booking__status manage-booking__status--error">{actionError}</p>}
+
+      {appointment.status === 'completed' && (
+        <ReviewForm
+          accessToken={accessToken}
+          appointment={appointment}
+          onSubmitted={setAppointment}
+        />
+      )}
     </main>
   )
 }
