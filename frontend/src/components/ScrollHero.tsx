@@ -87,7 +87,7 @@ function HeroContent() {
       <p className="scroll-hero__tagline">
         Belleza que florece en calma. Un espacio para que cada detalle tenga tiempo de existir.
       </p>
-      <Button variant="solid" href="#reservar" className="scroll-hero__cta">
+      <Button variant="solid" to="/reservar" className="scroll-hero__cta">
         Reservar cita
       </Button>
     </div>

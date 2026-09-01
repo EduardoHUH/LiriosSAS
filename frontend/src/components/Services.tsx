@@ -78,7 +78,9 @@ export default function Services() {
             </span>
             <h3 className="services__item-headline">{service.headline}</h3>
             <p className="services__item-description">{service.description}</p>
-            <Button variant="text">Ver detalles</Button>
+            <Button variant="text" to="/servicios">
+              Ver detalles
+            </Button>
           </div>
         </motion.article>
       ))}

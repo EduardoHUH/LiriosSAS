@@ -70,3 +70,8 @@
   padding-top: 17px;
   padding-bottom: 17px;
 }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

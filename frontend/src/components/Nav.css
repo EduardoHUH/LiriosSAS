@@ -9,17 +9,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: transparent;
-  backdrop-filter: none;
   transition:
     background var(--duration-hover) var(--ease-out),
     backdrop-filter var(--duration-hover) var(--ease-out);
-}
-
-.nav--scrolled {
-  background: rgba(15, 10, 8, 0.35);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
 }
 
 .nav__logo {
@@ -28,7 +20,6 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: white;
 }
 
 .nav__links {
@@ -40,11 +31,50 @@
 .nav__links a {
   font-family: var(--font-body);
   font-size: 14px;
+}
+
+/* Transparent variant -- sits over the dark homepage hero, gains a glass
+   background once scrolled past it. */
+.nav--transparent {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.nav--transparent .nav__logo,
+.nav--transparent .nav__links a {
+  color: white;
+}
+
+.nav--transparent .nav__links a {
   color: rgba(255, 255, 255, 0.85);
 }
 
-.nav__links a:hover {
+.nav--transparent .nav__links a:hover {
   color: white;
+}
+
+.nav--transparent.nav--scrolled {
+  background: rgba(15, 10, 8, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Solid variant -- every other page, no dark hero to sit over. */
+.nav--solid {
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav--solid .nav__logo {
+  color: var(--color-ink);
+}
+
+.nav--solid .nav__links a {
+  color: var(--color-ink-soft);
+}
+
+.nav--solid .nav__links a:hover {
+  color: var(--color-sage-deep);
 }
 
 @media (max-width: 900px) {

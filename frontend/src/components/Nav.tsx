@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { useMotionValueEvent, useScroll } from 'motion/react'
+import { Link } from 'react-router-dom'
 import Button from './Button'
 import './Nav.css'
 
-export default function Nav() {
+interface NavProps {
+  variant?: 'transparent' | 'solid'
+}
+
+export default function Nav({ variant = 'solid' }: NavProps) {
   const [scrolled, setScrolled] = useState(false)
   const { scrollY } = useScroll()
 
@@ -11,13 +16,20 @@ export default function Nav() {
     setScrolled(latest > 80)
   })
 
+  const isTransparent = variant === 'transparent'
+  const classes = ['nav', `nav--${variant}`, isTransparent && scrolled ? 'nav--scrolled' : '']
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <header className={`nav${scrolled ? ' nav--scrolled' : ''}`}>
-      <span className="nav__logo">Lirios</span>
+    <header className={classes}>
+      <Link className="nav__logo" to="/">
+        Lirios
+      </Link>
       <nav className="nav__links">
-        <a href="#servicios">Servicios</a>
-        <a href="#galeria">Galería</a>
-        <Button variant="glass" href="#reservar">
+        <Link to="/servicios">Servicios</Link>
+        <Link to="/#galeria">Galería</Link>
+        <Button variant={isTransparent ? 'glass' : 'solid'} to="/reservar">
           Reservar cita
         </Button>
       </nav>

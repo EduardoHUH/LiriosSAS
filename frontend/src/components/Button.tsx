@@ -1,6 +1,9 @@
 import { motion, useReducedMotion } from 'motion/react'
 import type { MouseEventHandler, ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import './Button.css'
+
+const MotionLink = motion.create(Link)
 
 type ButtonVariant = 'solid' | 'outline' | 'text' | 'glass'
 
@@ -8,6 +11,9 @@ interface ButtonProps {
   children: ReactNode
   variant?: ButtonVariant
   href?: string
+  to?: string
+  type?: 'button' | 'submit'
+  disabled?: boolean
   onClick?: MouseEventHandler
   fullWidth?: boolean
   className?: string
@@ -17,6 +23,9 @@ export default function Button({
   children,
   variant = 'solid',
   href,
+  to,
+  type = 'button',
+  disabled,
   onClick,
   fullWidth,
   className,
@@ -33,6 +42,14 @@ export default function Button({
         transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] as const },
       }
 
+  if (to) {
+    return (
+      <MotionLink className={classes} to={to} onClick={onClick} {...hoverProps}>
+        {children}
+      </MotionLink>
+    )
+  }
+
   if (href) {
     return (
       <motion.a className={classes} href={href} onClick={onClick} {...hoverProps}>
@@ -42,7 +59,13 @@ export default function Button({
   }
 
   return (
-    <motion.button className={classes} onClick={onClick} {...hoverProps}>
+    <motion.button
+      className={classes}
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      {...hoverProps}
+    >
       {children}
     </motion.button>
   )

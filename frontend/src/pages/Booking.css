@@ -1,0 +1,12 @@
+.booking-page {
+  padding: 160px max(24px, 6.1vw) 120px;
+  min-height: 70vh;
+}
+
+.booking-page__conflict {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-blush);
+  margin-bottom: 16px;
+  max-width: 640px;
+}

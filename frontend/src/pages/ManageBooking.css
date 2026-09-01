@@ -1,0 +1,97 @@
+.manage-booking {
+  padding: 160px max(24px, 6.1vw) 120px;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 60vh;
+}
+
+.manage-booking__eyebrow {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+.manage-booking__title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-h2);
+  line-height: 1.15;
+  color: var(--color-ink);
+}
+
+.manage-booking__status {
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--color-ink-soft);
+}
+
+.manage-booking__status--error {
+  color: var(--color-blush);
+}
+
+.manage-booking__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 24px;
+  border-radius: var(--radius-md);
+  background: var(--color-cream-white);
+  border: 1px solid var(--color-border);
+}
+
+.manage-booking__summary div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.manage-booking__summary dt {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-ink-soft);
+}
+
+.manage-booking__summary dd {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  text-align: right;
+}
+
+.manage-booking__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.manage-booking__cancel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-booking__cancel label {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.manage-booking__cancel textarea {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--color-ink);
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-cream-white);
+}
