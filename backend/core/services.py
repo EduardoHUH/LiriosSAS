@@ -4,7 +4,7 @@ separate from the view so the aggregation logic is testable without HTTP."""
 from datetime import datetime, time, timedelta
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from appointments.models import Appointment, AppointmentStatus
@@ -64,3 +64,67 @@ def get_dashboard_overview():
         "pending_payments": pending_payments,
         "refund_pending_payments": refund_pending_payments,
     }
+
+
+def get_revenue_trend(date_from, date_to, group_by="day"):
+    """Buckets SUCCEEDED payments by paid_at into day/week/month periods,
+    local-timezone-aware. Same payment-based definition of "revenue" as
+    get_dashboard_overview's revenue_this_month -- not appointment price,
+    so this number and get_service_popularity's revenue are deliberately
+    not the same metric (see that function's docstring).
+
+    Bucketing happens in Python rather than via Trunc(tzinfo=...) --
+    MySQL's CONVERT_TZ requires the server's time zone tables to be
+    loaded (mysql_tzinfo_to_sql), which isn't guaranteed across dev/CI/
+    prod environments here. Ranges this query covers (weeks/months of
+    payments, not years) are small enough that this isn't a real
+    performance concern."""
+    range_start, _ = _local_day_bounds(date_from)
+    _, range_end = _local_day_bounds(date_to)
+
+    payments = Payment.objects.filter(
+        status=PaymentStatus.SUCCEEDED, paid_at__gte=range_start, paid_at__lte=range_end
+    ).only("amount", "paid_at")
+
+    buckets = {}
+    for payment in payments:
+        local_date = timezone.localtime(payment.paid_at).date()
+        if group_by == "week":
+            period = local_date - timedelta(days=local_date.weekday())
+        elif group_by == "month":
+            period = local_date.replace(day=1)
+        else:
+            period = local_date
+        buckets[period] = buckets.get(period, Decimal("0.00")) + payment.amount
+
+    return [{"period": period, "revenue": revenue} for period, revenue in sorted(buckets.items())]
+
+
+def get_service_popularity(date_from, date_to):
+    """Groups COMPLETED appointments by service. revenue here is
+    Sum(price_snapshot) -- the appointment's booked price -- NOT confirmed
+    online payment like get_revenue_trend. A walk-in who pays in person at
+    the salon still completed a real appointment; excluding those would
+    make "which services are popular" meaningless for services people
+    often pay for in person. Do not assume this equals revenue trend."""
+    range_start, _ = _local_day_bounds(date_from)
+    _, range_end = _local_day_bounds(date_to)
+
+    rows = (
+        Appointment.objects.filter(
+            status=AppointmentStatus.COMPLETED,
+            start_datetime__gte=range_start,
+            start_datetime__lte=range_end,
+        )
+        .values("service__name")
+        .annotate(appointment_count=Count("id"), revenue=Sum("price_snapshot"))
+        .order_by("-appointment_count")
+    )
+    return [
+        {
+            "service_name": row["service__name"],
+            "appointment_count": row["appointment_count"],
+            "revenue": row["revenue"] or Decimal("0.00"),
+        }
+        for row in rows
+    ]

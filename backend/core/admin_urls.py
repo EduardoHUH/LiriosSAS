@@ -1,8 +1,15 @@
 from django.urls import path
 
-from core.views import BusinessSettingsAdminView, dashboard_overview
+from core.views import (
+    BusinessSettingsAdminView,
+    dashboard_overview,
+    revenue_trend,
+    service_popularity,
+)
 
 urlpatterns = [
     path("business-settings/", BusinessSettingsAdminView.as_view(), name="admin-business-settings"),
     path("dashboard/overview/", dashboard_overview, name="admin-dashboard-overview"),
+    path("analytics/revenue/", revenue_trend, name="admin-analytics-revenue"),
+    path("analytics/services/", service_popularity, name="admin-analytics-services"),
 ]

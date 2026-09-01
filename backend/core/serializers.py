@@ -44,3 +44,14 @@ class DashboardOverviewSerializer(serializers.Serializer):
     cancellations_this_month = serializers.IntegerField()
     pending_payments = serializers.IntegerField()
     refund_pending_payments = serializers.IntegerField()
+
+
+class RevenueTrendPointSerializer(serializers.Serializer):
+    period = serializers.DateField()
+    revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+
+class ServicePopularitySerializer(serializers.Serializer):
+    service_name = serializers.CharField()
+    appointment_count = serializers.IntegerField()
+    revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
