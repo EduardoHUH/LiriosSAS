@@ -11,8 +11,10 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource/bodoni-moda": "^5.2.5",
+    "@fontsource/karla": "^5.2.5",
     "axios": "^1.20.0",
-    "bootstrap": "^5.3.8",
+    "motion": "^12.23.12",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3"

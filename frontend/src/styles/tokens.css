@@ -1,0 +1,46 @@
+:root {
+  /* Color */
+  --color-bg: oklch(97% 0.012 80);
+  --color-bg-deep: oklch(93% 0.016 75);
+  --color-ink: oklch(24% 0.02 50);
+  --color-ink-soft: oklch(45% 0.025 50);
+  --color-sage: oklch(56% 0.05 145);
+  --color-sage-deep: oklch(38% 0.045 145);
+  --color-blush: oklch(56% 0.05 35);
+  --color-cream-white: oklch(99% 0.004 80);
+  --color-border: oklch(90% 0.014 75);
+
+  /* Typography */
+  --font-display: 'Bodoni Moda', Georgia, 'Times New Roman', serif;
+  --font-body: 'Karla', -apple-system, 'Segoe UI', sans-serif;
+
+  --text-hero: clamp(3.5rem, 11vw, 8rem);
+  --text-display: clamp(3rem, 7vw, 6.5rem);
+  --text-h1: clamp(2rem, 4.5vw, 3.5rem);
+  --text-h2: clamp(1.5rem, 2.5vw, 2.25rem);
+  --text-body-lg: clamp(1.0625rem, 1.3vw, 1.25rem);
+  --text-body: 1rem;
+  --text-eyebrow: 0.75rem;
+
+  /* Spacing */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --space-64: 64px;
+  --space-96: 96px;
+  --space-128: 128px;
+
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-full: 999px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-hover: 200ms;
+}

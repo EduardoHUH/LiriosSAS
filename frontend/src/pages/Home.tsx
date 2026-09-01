@@ -1,31 +1,19 @@
-import { useEffect, useState } from 'react'
-import { apiClient } from '../api/client'
-
-type BackendStatus = 'checking' | 'online' | 'offline'
-
-const STATUS_LABELS: Record<BackendStatus, string> = {
-  checking: 'verificando...',
-  online: 'en línea',
-  offline: 'sin conexión',
-}
+import Nav from '../components/Nav'
+import ScrollHero from '../components/ScrollHero'
+import Showcase from '../components/Showcase'
+import Services from '../components/Services'
+import Footer from '../components/Footer'
 
 export default function Home() {
-  const [status, setStatus] = useState<BackendStatus>('checking')
-
-  useEffect(() => {
-    apiClient
-      .get('/health/')
-      .then(() => setStatus('online'))
-      .catch(() => setStatus('offline'))
-  }, [])
-
   return (
-    <main className="container py-5">
-      <h1>Lirios</h1>
-      <p>Maquillaje, uñas y pestañas.</p>
-      <p>
-        Estado del servidor: <strong>{STATUS_LABELS[status]}</strong>
-      </p>
-    </main>
+    <>
+      <Nav />
+      <main>
+        <ScrollHero />
+        <Showcase />
+        <Services />
+      </main>
+      <Footer />
+    </>
   )
 }

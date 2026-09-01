@@ -1,0 +1,232 @@
+@keyframes scroll-hero-cue {
+  0% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(6px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0.9;
+  }
+}
+
+.scroll-hero {
+  position: relative;
+  height: 220vh;
+}
+
+.scroll-hero__pin {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.scroll-hero__frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.scroll-hero__frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(20, 14, 10, 0.15) 0%,
+    rgba(20, 14, 10, 0) 30%,
+    rgba(20, 14, 10, 0.55) 100%
+  );
+  z-index: 1;
+}
+
+.scroll-hero__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 10, 8, 0.72);
+  z-index: 2;
+}
+
+.scroll-hero__content {
+  position: absolute;
+  left: clamp(24px, 5vw, 56px);
+  right: clamp(24px, 5vw, 56px);
+  bottom: 14vh;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 760px;
+  z-index: 3;
+}
+
+.scroll-hero__eyebrow {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.scroll-hero__eyebrow--center {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.scroll-hero__wordmark {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: var(--text-hero);
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  color: white;
+  margin: 0;
+}
+
+.scroll-hero__tagline {
+  font-family: var(--font-body);
+  font-size: clamp(1rem, 1.4vw, 1.3125rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 460px;
+  margin: 4px 0 0 0;
+}
+
+.scroll-hero__cta {
+  margin-top: 8px;
+  width: fit-content;
+}
+
+.scroll-hero__ghost-wordmark {
+  position: absolute;
+  left: clamp(24px, 5vw, 56px);
+  top: 130px;
+  font-family: var(--font-display);
+  font-size: 30px;
+  color: rgba(255, 255, 255, 0.16);
+  letter-spacing: -0.01em;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.scroll-hero__philosophy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 max(24px, 10vw);
+  z-index: 3;
+}
+
+.scroll-hero__philosophy-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  text-align: center;
+  max-width: 720px;
+}
+
+.scroll-hero__philosophy-headline {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.75rem, 4vw, 3.25rem);
+  line-height: 1.15;
+  color: white;
+  margin: 0;
+}
+
+.scroll-hero__divider {
+  width: 44px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.scroll-hero__philosophy-body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 520px;
+  margin: 0;
+}
+
+.scroll-hero__scroll-cue {
+  position: absolute;
+  left: clamp(24px, 5vw, 56px);
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 3;
+  opacity: 1;
+  transition: opacity 300ms var(--ease-out);
+}
+
+.scroll-hero__scroll-cue--hidden {
+  opacity: 0;
+}
+
+.scroll-hero__scroll-cue-line {
+  width: 1px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.5);
+  animation: scroll-hero-cue 2.2s ease-in-out infinite;
+}
+
+.scroll-hero__scroll-cue-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Reduced-motion fallback: no pin, no scroll-linked transforms — two plain stacked sections */
+.scroll-hero--static {
+  height: auto;
+}
+
+.scroll-hero--static .scroll-hero__frame {
+  height: 100vh;
+}
+
+.scroll-hero__philosophy-static {
+  padding: 96px max(24px, 10vw);
+  background: var(--color-bg-deep);
+}
+
+.scroll-hero__philosophy-static .scroll-hero__philosophy-inner {
+  margin: 0 auto;
+}
+
+.scroll-hero__philosophy-static .scroll-hero__philosophy-headline {
+  color: var(--color-ink);
+}
+
+.scroll-hero__philosophy-static .scroll-hero__eyebrow--center {
+  color: var(--color-ink-soft);
+}
+
+.scroll-hero__philosophy-static .scroll-hero__divider {
+  background: var(--color-sage);
+}
+
+.scroll-hero__philosophy-static .scroll-hero__philosophy-body {
+  color: var(--color-ink-soft);
+}
+
+@media (max-width: 720px) {
+  .scroll-hero__content {
+    bottom: 12vh;
+  }
+
+  .scroll-hero__philosophy-body {
+    display: none;
+  }
+}
