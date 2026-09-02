@@ -26,7 +26,7 @@ class BusinessSettingsPublicSerializer(serializers.ModelSerializer):
             "min_booking_notice_hours",
             "max_booking_window_days",
             "cancellation_deadline_hours",
-            "unpaid_hold_minutes",
+            "pending_hold_minutes",
             "default_buffer_minutes",
             "is_accepting_bookings",
         ]
@@ -42,8 +42,6 @@ class DashboardOverviewSerializer(serializers.Serializer):
     revenue_this_month = serializers.DecimalField(max_digits=10, decimal_places=2)
     completed_appointments_this_month = serializers.IntegerField()
     cancellations_this_month = serializers.IntegerField()
-    pending_payments = serializers.IntegerField()
-    refund_pending_payments = serializers.IntegerField()
 
 
 class RevenueTrendPointSerializer(serializers.Serializer):

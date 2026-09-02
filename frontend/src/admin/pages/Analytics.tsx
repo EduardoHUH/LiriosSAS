@@ -90,7 +90,7 @@ export default function Analytics() {
       <div className="analytics__panels" style={{ opacity: state === 'loading' ? 0.5 : 1 }}>
         <section className="admin-panel">
           <h2 className="analytics__panel-title">Tendencia de ingresos</h2>
-          <p className="analytics__panel-subtitle">Pagos confirmados, agrupados por {groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : 'mes'}.</p>
+          <p className="analytics__panel-subtitle">Citas completadas, agrupadas por {groupBy === 'day' ? 'día' : groupBy === 'week' ? 'semana' : 'mes'}.</p>
           <RevenueTrendChart data={revenueData} groupBy={groupBy} />
         </section>
 
@@ -108,7 +108,7 @@ export default function Analytics() {
         <section className="admin-panel">
           <h2 className="analytics__panel-title">Ingresos por servicio</h2>
           <p className="analytics__panel-subtitle">
-            Suma de precios de citas completadas (no solo pagos en línea) — total: {formatMoney(String(totalRevenue))}.
+            Suma de precios de citas completadas — total: {formatMoney(String(totalRevenue))}.
           </p>
           <BarChart
             data={popularityData.map((row) => ({ label: row.service_name, value: Number(row.revenue) }))}

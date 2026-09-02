@@ -6,16 +6,14 @@ import { formatFullDateTime } from '../utils/formatDateTime'
 import { formatMoney } from '../utils/formatMoney'
 import Button from '../components/Button'
 import DateTimeStep from '../components/booking/DateTimeStep'
-import PaymentForm from '../components/booking/PaymentForm'
 import ReviewForm from '../components/ReviewForm'
 import type { Appointment } from '../types/api'
 import './ManageBooking.css'
 
 type LoadState = 'loading' | 'loaded' | 'error'
-type View = 'details' | 'cancel' | 'reschedule' | 'pay'
+type View = 'details' | 'cancel' | 'reschedule'
 
-const ACTIONABLE_STATUSES = new Set(['pending', 'awaiting_payment', 'confirmed', 'reschedule_requested'])
-const PAYABLE_STATUSES = new Set(['pending', 'awaiting_payment'])
+const ACTIONABLE_STATUSES = new Set(['pending', 'confirmed', 'reschedule_requested'])
 
 export default function ManageBooking() {
   const { accessToken } = useParams<{ accessToken: string }>()
@@ -73,7 +71,6 @@ export default function ManageBooking() {
   }
 
   const canAct = ACTIONABLE_STATUSES.has(appointment.status)
-  const canPay = PAYABLE_STATUSES.has(appointment.status)
 
   return (
     <main className="manage-booking">
@@ -103,11 +100,6 @@ export default function ManageBooking() {
 
       {view === 'details' && canAct && (
         <div className="manage-booking__actions">
-          {canPay && (
-            <Button variant="solid" type="button" onClick={() => setView('pay')}>
-              Pagar
-            </Button>
-          )}
           <Button variant="outline" type="button" onClick={() => setView('reschedule')}>
             Reprogramar
           </Button>
@@ -115,17 +107,6 @@ export default function ManageBooking() {
             Cancelar cita
           </Button>
         </div>
-      )}
-
-      {view === 'pay' && (
-        <PaymentForm
-          accessToken={accessToken}
-          onCancel={() => setView('details')}
-          onSuccess={(updated) => {
-            setAppointment(updated)
-            setView('details')
-          }}
-        />
       )}
 
       {view === 'reschedule' && (

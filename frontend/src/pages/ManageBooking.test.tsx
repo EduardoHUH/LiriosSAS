@@ -65,7 +65,6 @@ describe('ManageBooking page', () => {
     expect(await screen.findByText('Manicure en gel')).toBeInTheDocument()
     expect(screen.getByText('L 650')).toBeInTheDocument()
     expect(screen.getByText('Pendiente')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Pagar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reprogramar' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cancelar cita' })).toBeInTheDocument()
   })

@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import Button from '../Button'
-import PaymentForm from './PaymentForm'
 import { saveLastAccessToken } from '../../utils/bookingStorage'
 import { formatFullDateTime } from '../../utils/formatDateTime'
 import { formatMoney } from '../../utils/formatMoney'
@@ -11,22 +10,18 @@ interface ConfirmationStepProps {
   appointment: Appointment
 }
 
-export default function ConfirmationStep({ appointment: initial }: ConfirmationStepProps) {
-  const [appointment, setAppointment] = useState(initial)
-  const [showPayment, setShowPayment] = useState(false)
-
+export default function ConfirmationStep({ appointment }: ConfirmationStepProps) {
   useEffect(() => {
     saveLastAccessToken(appointment.access_token)
   }, [appointment.access_token])
-
-  const canPay = appointment.status === 'pending' || appointment.status === 'awaiting_payment'
 
   return (
     <div className="booking-step">
       <span className="booking-step__eyebrow">Reserva creada</span>
       <h1 className="booking-step__title">¡Gracias por tu reserva!</h1>
       <p className="booking-step__subtitle">
-        Te enviamos un correo con los detalles de tu cita en Lirios.
+        Te enviamos un correo con los detalles de tu cita en Lirios. Nuestro equipo confirmará tu
+        cita pronto.
       </p>
 
       <dl className="booking-step__summary">
@@ -48,33 +43,9 @@ export default function ConfirmationStep({ appointment: initial }: ConfirmationS
         </div>
       </dl>
 
-      {canPay && !showPayment && (
-        <div className="booking-step__actions">
-          <Button variant="text" to={`/citas/${appointment.access_token}`}>
-            Pagar después en el salón
-          </Button>
-          <Button variant="solid" type="button" onClick={() => setShowPayment(true)}>
-            Pagar ahora
-          </Button>
-        </div>
-      )}
-
-      {canPay && showPayment && (
-        <PaymentForm
-          accessToken={appointment.access_token}
-          onCancel={() => setShowPayment(false)}
-          onSuccess={(updated) => {
-            setAppointment(updated)
-            setShowPayment(false)
-          }}
-        />
-      )}
-
-      {!canPay && (
-        <Button variant="solid" to={`/citas/${appointment.access_token}`}>
-          Ver mi cita
-        </Button>
-      )}
+      <Button variant="solid" to={`/citas/${appointment.access_token}`}>
+        Ver mi cita
+      </Button>
     </div>
   )
 }

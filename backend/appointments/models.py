@@ -13,7 +13,6 @@ def generate_access_token():
 
 class AppointmentStatus(models.TextChoices):
     PENDING = "pending", "Pendiente"
-    AWAITING_PAYMENT = "awaiting_payment", "Esperando pago"
     CONFIRMED = "confirmed", "Confirmada"
     CANCELLED = "cancelled", "Cancelada"
     COMPLETED = "completed", "Completada"
@@ -27,18 +26,16 @@ class AppointmentStatus(models.TextChoices):
 # overlap check -- so the two can never drift apart on what counts as "busy".
 BLOCKING_APPOINTMENT_STATUSES = [
     AppointmentStatus.PENDING,
-    AppointmentStatus.AWAITING_PAYMENT,
     AppointmentStatus.CONFIRMED,
     AppointmentStatus.RESCHEDULE_REQUESTED,
 ]
 
-# Of those, PENDING/AWAITING_PAYMENT only hold the slot for a limited grace
-# window (BusinessSettings.unpaid_hold_minutes) while the customer completes
-# checkout -- past that, they stop blocking availability even before a
-# cleanup job gets around to marking them cancelled.
-UNPAID_HOLD_STATUSES = [
+# PENDING only holds the slot for a limited grace window
+# (BusinessSettings.pending_hold_minutes) while waiting for staff to confirm
+# it -- past that, it stops blocking availability even before a cleanup job
+# gets around to marking it cancelled.
+PENDING_HOLD_STATUSES = [
     AppointmentStatus.PENDING,
-    AppointmentStatus.AWAITING_PAYMENT,
 ]
 
 

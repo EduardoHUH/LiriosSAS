@@ -4,7 +4,6 @@ from appointments.models import Appointment
 from appointments.services import create_appointment
 from catalog.models import Service
 from catalog.serializers import ServicePublicSerializer
-from payments.serializers import PaymentSummarySerializer
 from reviews.serializers import ReviewSummarySerializer
 from scheduling.availability import is_slot_available
 
@@ -24,7 +23,9 @@ class AppointmentCreateSerializer(serializers.Serializer):
     service = serializers.SlugField()
     start_datetime = serializers.DateTimeField()
     customer = CustomerBookingSerializer()
-    customer_notes = serializers.CharField(required=False, allow_blank=True, default="")
+    customer_notes = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
 
     def validate_service(self, value):
         try:
@@ -88,7 +89,7 @@ class AppointmentRescheduleRequestSerializer(serializers.Serializer):
 
 
 class AppointmentCancelRequestSerializer(serializers.Serializer):
-    reason = serializers.CharField(required=False, allow_blank=True, default="")
+    reason = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)
 
 
 class AppointmentAdminSerializer(serializers.ModelSerializer):
@@ -97,13 +98,6 @@ class AppointmentAdminSerializer(serializers.ModelSerializer):
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
     service_name = serializers.CharField(source="service.name", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    payment = serializers.SerializerMethodField()
-
-    def get_payment(self, obj):
-        payment = getattr(obj, "payment", None)
-        if payment is None:
-            return None
-        return PaymentSummarySerializer(payment).data
 
     class Meta:
         model = Appointment

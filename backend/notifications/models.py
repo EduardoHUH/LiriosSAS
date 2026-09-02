@@ -6,7 +6,6 @@ from core.models import TimeStampedModel
 
 class NotificationType(models.TextChoices):
     BOOKING_CONFIRMATION = "booking_confirmation", "Confirmación de reserva"
-    PAYMENT_CONFIRMATION = "payment_confirmation", "Confirmación de pago"
     CANCELLATION = "cancellation", "Cancelación"
     RESCHEDULE = "reschedule", "Reprogramación"
     REMINDER = "reminder", "Recordatorio"
@@ -25,9 +24,9 @@ class NotificationStatus(models.TextChoices):
 
 
 class Notification(TimeStampedModel):
-    """Log of outbound notifications. Kept decoupled from booking/payment
-    business logic (a channel is just a field here) so a channel like
-    WhatsApp or SMS can be added later without touching that logic."""
+    """Log of outbound notifications. Kept decoupled from booking business
+    logic (a channel is just a field here) so a channel like WhatsApp or
+    SMS can be added later without touching that logic."""
 
     appointment = models.ForeignKey(
         Appointment,

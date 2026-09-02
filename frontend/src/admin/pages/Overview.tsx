@@ -38,8 +38,6 @@ export default function Overview() {
     { label: 'Ingresos este mes', value: formatMoney(data.revenue_this_month) },
     { label: 'Completadas este mes', value: data.completed_appointments_this_month },
     { label: 'Canceladas este mes', value: data.cancellations_this_month },
-    { label: 'Pagos pendientes', value: data.pending_payments },
-    { label: 'Reembolsos pendientes', value: data.refund_pending_payments },
   ]
 
   return (

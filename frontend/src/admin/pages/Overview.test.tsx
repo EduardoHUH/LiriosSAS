@@ -14,8 +14,6 @@ const OVERVIEW: DashboardOverview = {
   revenue_this_month: '4250.00',
   completed_appointments_this_month: 12,
   cancellations_this_month: 2,
-  pending_payments: 1,
-  refund_pending_payments: 0,
 }
 
 describe('Admin Overview page', () => {

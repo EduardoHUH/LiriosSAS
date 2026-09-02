@@ -1,7 +1,7 @@
 """Sends transactional emails and logs every attempt to Notification,
 whether it succeeds or fails. A broken email provider must never break
 the underlying business operation -- every call site here runs *after*
-the appointment/payment/auth change it's reporting on has already been
+the appointment/auth change it's reporting on has already been
 committed, so a send failure only means the customer doesn't get an
 email, not that the operation itself is rolled back or reported as
 failed to them."""
@@ -59,9 +59,8 @@ def _appointment_context(appointment):
 
 
 def send_booking_received_email(appointment):
-    """A new booking was created (status pending) -- online payment is
-    optional, so this tells the customer their slot is held and explains
-    what happens next, whether they pay now or wait for staff to confirm."""
+    """A new booking was created (status pending) -- tells the customer
+    their slot is held and that staff will confirm it."""
 
     _send_and_log(
         notification_type=NotificationType.BOOKING_CONFIRMATION,
@@ -73,27 +72,12 @@ def send_booking_received_email(appointment):
 
 
 def send_booking_confirmed_email(appointment):
-    """Staff manually confirmed a booking without an online payment (walk-in,
-    phone booking, or pay-in-person)."""
+    """Staff manually confirmed a booking (walk-in, phone, or online request)."""
 
     _send_and_log(
         notification_type=NotificationType.BOOKING_CONFIRMATION,
         recipient_email=appointment.customer.email,
         template_name="booking_confirmed",
-        context=_appointment_context(appointment),
-        appointment=appointment,
-    )
-
-
-def send_payment_confirmed_email(appointment):
-    """An online card payment was approved -- this both confirms the
-    booking and the payment in one message, since PixelPay's synchronous
-    charge makes both happen at once."""
-
-    _send_and_log(
-        notification_type=NotificationType.PAYMENT_CONFIRMATION,
-        recipient_email=appointment.customer.email,
-        template_name="payment_confirmed",
         context=_appointment_context(appointment),
         appointment=appointment,
     )

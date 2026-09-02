@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -8,7 +8,6 @@ from rest_framework.test import APIClient
 from appointments.models import Appointment, AppointmentStatus
 from catalog.models import Service, ServiceCategory
 from customers.models import Customer
-from payments.models import Payment, PaymentStatus
 
 User = get_user_model()
 
@@ -70,21 +69,54 @@ def test_revenue_trend_requires_staff():
 
 
 @pytest.mark.django_db
-def test_revenue_trend_buckets_succeeded_payments_by_day(service, customer, staff_client):
+def test_revenue_trend_buckets_completed_appointments_by_day(service, customer, staff_client):
     now = timezone.now()
-    appt = _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
-    Payment.objects.create(
-        appointment=appt, amount="500.00", currency="HNL", status=PaymentStatus.SUCCEEDED, paid_at=now
-    )
-    other_appt = _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
-    Payment.objects.create(
-        appointment=other_appt, amount="300.00", currency="HNL", status=PaymentStatus.PENDING
-    )
+    _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=now)
+    _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
 
     response = staff_client.get(REVENUE_URL)
 
     assert response.status_code == 200
     assert len(response.data) == 1
+    assert response.data[0]["revenue"] == "500.00"
+
+
+@pytest.mark.django_db
+def test_revenue_trend_buckets_completed_appointments_by_week(service, customer, staff_client):
+    # The service function buckets by the *local* (Honduras) date of
+    # start_datetime, so the expected period must be derived the same way
+    # here -- deriving it from the raw UTC `now` instead could put the
+    # test on the wrong side of a weekday boundary during the ~6-hour
+    # window where UTC and local dates disagree.
+    now = timezone.now()
+    today_local = timezone.localtime(now).date()
+    monday_local = today_local - timedelta(days=today_local.weekday())
+    monday = timezone.make_aware(datetime.combine(monday_local, time(12, 0)))
+
+    _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=monday)
+    _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=now)
+
+    response = staff_client.get(REVENUE_URL, {"group_by": "week"})
+
+    assert response.status_code == 200
+    # Both appointments fall in the same local ISO week, so they collapse
+    # into one bucket.
+    assert len(response.data) == 1
+    assert response.data[0]["period"] == monday_local.isoformat()
+    assert response.data[0]["revenue"] == "1000.00"
+
+
+@pytest.mark.django_db
+def test_revenue_trend_buckets_completed_appointments_by_month(service, customer, staff_client):
+    now = timezone.now()
+    first_of_month_local = timezone.localtime(now).date().replace(day=1)
+    _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=now)
+
+    response = staff_client.get(REVENUE_URL, {"group_by": "month"})
+
+    assert response.status_code == 200
+    assert len(response.data) == 1
+    assert response.data[0]["period"] == first_of_month_local.isoformat()
     assert response.data[0]["revenue"] == "500.00"
 
 
@@ -98,6 +130,13 @@ def test_revenue_trend_rejects_bad_group_by(staff_client):
 @pytest.mark.django_db
 def test_revenue_trend_rejects_bad_date_format(staff_client):
     response = staff_client.get(REVENUE_URL, {"date_from": "not-a-date"})
+
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_service_popularity_rejects_bad_date_format(staff_client):
+    response = staff_client.get(SERVICES_URL, {"date_from": "not-a-date"})
 
     assert response.status_code == 400
 
@@ -122,11 +161,10 @@ def test_service_popularity_counts_completed_appointments_by_service(
 
 
 @pytest.mark.django_db
-def test_service_popularity_counts_a_completed_but_unpaid_appointment(service, customer, staff_client):
-    """The whole point of using appointment price rather than payment
-    status here: a walk-in who pays in person still completed a real
-    appointment, so it must count toward popularity even with no Payment
-    row at all -- unlike revenue_trend, which would show zero for it."""
+def test_service_popularity_and_revenue_trend_agree_on_revenue(service, customer, staff_client):
+    """Both endpoints define revenue the same way now (Sum(price_snapshot)
+    on COMPLETED appointments) -- this locks that invariant in so a future
+    change to one definition without the other doesn't silently drift."""
     now = timezone.now()
     _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=now)
 
@@ -135,4 +173,4 @@ def test_service_popularity_counts_a_completed_but_unpaid_appointment(service, c
 
     assert services_response.data[0]["appointment_count"] == 1
     assert services_response.data[0]["revenue"] == "500.00"
-    assert revenue_response.data == []
+    assert revenue_response.data[0]["revenue"] == "500.00"

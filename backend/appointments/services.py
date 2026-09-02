@@ -42,19 +42,11 @@ class CancellationPolicyError(Exception):
 
 
 # Explicit state machine: do not allow arbitrary status transitions.
-# PENDING -> CONFIRMED covers both a staff-confirmed
-# walk-in/phone booking and PixelPay's synchronous online charge (see
-# payments/services.py). PENDING -> AWAITING_PAYMENT -> CONFIRMED is not
-# currently used by any code path -- it's kept for a future async
-# payment method (e.g. bank transfer, or a redirect-based gateway step)
-# that needs a distinct "payment in progress" state.
+# PENDING -> CONFIRMED happens only via staff manually
+# confirming a booking (walk-in, phone, or online request) -- there is no
+# online payment in this system, so every booking is confirmed by staff.
 ALLOWED_TRANSITIONS = {
     AppointmentStatus.PENDING: {
-        AppointmentStatus.AWAITING_PAYMENT,
-        AppointmentStatus.CONFIRMED,
-        AppointmentStatus.CANCELLED,
-    },
-    AppointmentStatus.AWAITING_PAYMENT: {
         AppointmentStatus.CONFIRMED,
         AppointmentStatus.CANCELLED,
     },

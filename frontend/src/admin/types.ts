@@ -11,8 +11,6 @@ export interface DashboardOverview {
   revenue_this_month: string
   completed_appointments_this_month: number
   cancellations_this_month: number
-  pending_payments: number
-  refund_pending_payments: number
 }
 
 export type TrendGroupBy = 'day' | 'week' | 'month'

@@ -43,7 +43,7 @@ const SETTINGS: BusinessSettingsPublic = {
   min_booking_notice_hours: 2,
   max_booking_window_days: 5,
   cancellation_deadline_hours: 24,
-  unpaid_hold_minutes: 20,
+  pending_hold_minutes: 20,
   default_buffer_minutes: 10,
   is_accepting_bookings: true,
 }

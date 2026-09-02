@@ -269,7 +269,7 @@ def test_pending_appointment_within_hold_window_blocks_slot(service, customer):
 @freeze_time(FROZEN_NOW)
 def test_pending_appointment_past_hold_window_does_not_block_slot(service, customer):
     settings_obj = BusinessSettings.load()
-    settings_obj.unpaid_hold_minutes = 20
+    settings_obj.pending_hold_minutes = 20
     settings_obj.save()
 
     target_date = _today_local() + timedelta(days=3)

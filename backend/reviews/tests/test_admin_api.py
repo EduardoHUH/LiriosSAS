@@ -77,6 +77,22 @@ def test_approve_action_updates_status_and_moderator(staff_client, completed_app
 
 
 @pytest.mark.django_db
+def test_reject_action_updates_status_and_moderator(staff_client, completed_appointment):
+    client, user = staff_client
+    review = Review.objects.create(
+        appointment=completed_appointment, reviewer_name="Ana López", rating=1, comment="Malo"
+    )
+
+    response = client.post("/api/v1/admin/reviews/reject/", {"ids": [review.id]})
+
+    assert response.status_code == 200
+    review.refresh_from_db()
+    assert review.status == ReviewStatus.REJECTED
+    assert review.moderated_by == user
+    assert review.moderated_at is not None
+
+
+@pytest.mark.django_db
 def test_only_approved_reviews_are_public(completed_appointment):
     Review.objects.create(
         appointment=completed_appointment,

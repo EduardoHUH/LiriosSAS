@@ -43,14 +43,13 @@ export interface BusinessSettingsPublic {
   min_booking_notice_hours: number
   max_booking_window_days: number
   cancellation_deadline_hours: number
-  unpaid_hold_minutes: number
+  pending_hold_minutes: number
   default_buffer_minutes: number
   is_accepting_bookings: boolean
 }
 
 export type AppointmentStatus =
   | 'pending'
-  | 'awaiting_payment'
   | 'confirmed'
   | 'cancelled'
   | 'completed'
@@ -115,18 +114,4 @@ export interface CreateAppointmentInput {
   start_datetime: string
   customer: CustomerInput
   customer_notes?: string
-}
-
-export interface PaymentInput {
-  card_number: string
-  card_cvv: string
-  card_expire_month: number
-  card_expire_year: number
-  cardholder: string
-  billing_address: string
-  billing_country: string
-  billing_state: string
-  billing_city: string
-  billing_zip: string
-  billing_phone: string
 }

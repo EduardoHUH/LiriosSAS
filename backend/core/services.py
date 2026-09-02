@@ -8,7 +8,6 @@ from django.db.models import Count, Sum
 from django.utils import timezone
 
 from appointments.models import Appointment, AppointmentStatus
-from payments.models import Payment, PaymentStatus
 
 
 def _local_day_bounds(local_date):
@@ -38,9 +37,9 @@ def get_dashboard_overview():
     ).count()
 
     revenue_this_month = (
-        Payment.objects.filter(status=PaymentStatus.SUCCEEDED, paid_at__gte=month_start).aggregate(
-            total=Sum("amount")
-        )["total"]
+        Appointment.objects.filter(
+            status=AppointmentStatus.COMPLETED, start_datetime__gte=month_start
+        ).aggregate(total=Sum("price_snapshot"))["total"]
         or Decimal("0.00")
     )
 
@@ -52,61 +51,54 @@ def get_dashboard_overview():
         status=AppointmentStatus.CANCELLED, cancelled_at__gte=month_start
     ).count()
 
-    pending_payments = Payment.objects.filter(status=PaymentStatus.PENDING).count()
-    refund_pending_payments = Payment.objects.filter(status=PaymentStatus.REFUND_PENDING).count()
-
     return {
         "appointments_today": appointments_today,
         "upcoming_appointments_next_7_days": upcoming_appointments_next_7_days,
         "revenue_this_month": revenue_this_month,
         "completed_appointments_this_month": completed_appointments_this_month,
         "cancellations_this_month": cancellations_this_month,
-        "pending_payments": pending_payments,
-        "refund_pending_payments": refund_pending_payments,
     }
 
 
 def get_revenue_trend(date_from, date_to, group_by="day"):
-    """Buckets SUCCEEDED payments by paid_at into day/week/month periods,
-    local-timezone-aware. Same payment-based definition of "revenue" as
-    get_dashboard_overview's revenue_this_month -- not appointment price,
-    so this number and get_service_popularity's revenue are deliberately
-    not the same metric (see that function's docstring).
+    """Buckets COMPLETED appointments by start_datetime into day/week/month
+    periods, local-timezone-aware, summing price_snapshot -- the same
+    revenue definition get_service_popularity already uses (see that
+    function's docstring), just bucketed over time instead of by service.
 
     Bucketing happens in Python rather than via Trunc(tzinfo=...) --
     MySQL's CONVERT_TZ requires the server's time zone tables to be
     loaded (mysql_tzinfo_to_sql), which isn't guaranteed across dev/CI/
-    prod environments here. Ranges this query covers (weeks/months of
-    payments, not years) are small enough that this isn't a real
-    performance concern."""
+    prod environments here. Ranges this query covers (weeks/months, not
+    years) are small enough that this isn't a real performance concern."""
     range_start, _ = _local_day_bounds(date_from)
     _, range_end = _local_day_bounds(date_to)
 
-    payments = Payment.objects.filter(
-        status=PaymentStatus.SUCCEEDED, paid_at__gte=range_start, paid_at__lte=range_end
-    ).only("amount", "paid_at")
+    appointments = Appointment.objects.filter(
+        status=AppointmentStatus.COMPLETED,
+        start_datetime__gte=range_start,
+        start_datetime__lte=range_end,
+    ).only("price_snapshot", "start_datetime")
 
     buckets = {}
-    for payment in payments:
-        local_date = timezone.localtime(payment.paid_at).date()
+    for appointment in appointments:
+        local_date = timezone.localtime(appointment.start_datetime).date()
         if group_by == "week":
             period = local_date - timedelta(days=local_date.weekday())
         elif group_by == "month":
             period = local_date.replace(day=1)
         else:
             period = local_date
-        buckets[period] = buckets.get(period, Decimal("0.00")) + payment.amount
+        buckets[period] = buckets.get(period, Decimal("0.00")) + appointment.price_snapshot
 
     return [{"period": period, "revenue": revenue} for period, revenue in sorted(buckets.items())]
 
 
 def get_service_popularity(date_from, date_to):
     """Groups COMPLETED appointments by service. revenue here is
-    Sum(price_snapshot) -- the appointment's booked price -- NOT confirmed
-    online payment like get_revenue_trend. A walk-in who pays in person at
-    the salon still completed a real appointment; excluding those would
-    make "which services are popular" meaningless for services people
-    often pay for in person. Do not assume this equals revenue trend."""
+    Sum(price_snapshot) -- the appointment's booked price, same definition
+    get_revenue_trend uses -- so a walk-in who never pays online still
+    counts; there's no other kind of payment to distinguish from."""
     range_start, _ = _local_day_bounds(date_from)
     _, range_end = _local_day_bounds(date_to)
 

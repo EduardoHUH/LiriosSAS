@@ -2,6 +2,7 @@
 certifi==2026.7.22
 charset-normalizer==3.5.1
 colorama==0.4.6
+coverage==7.16.0
 Django==5.2.17
 django-anymail==15.1
 django-cors-headers==4.9.0
@@ -14,11 +15,11 @@ iniconfig==2.3.0
 mysqlclient==2.2.8
 packaging==26.3
 pillow==12.3.0
-pixelpay-sdk==2.2.5
 pluggy==1.6.0
 Pygments==2.21.0
 PyJWT==2.13.0
 pytest==9.1.1
+pytest-cov==7.1.0
 pytest-django==4.14.0
 python-dateutil==2.9.0.post0
 requests==2.34.2

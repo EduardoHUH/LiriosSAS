@@ -242,24 +242,3 @@
   color: var(--color-ink);
   text-align: right;
 }
-
-.payment-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.payment-form__notice {
-  font-family: var(--font-body);
-  font-size: 13px;
-  color: var(--color-ink-soft);
-}
-
-.payment-form__row {
-  display: flex;
-  gap: 16px;
-}
-
-.payment-form__row .booking-step__field {
-  flex: 1;
-}

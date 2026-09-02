@@ -8,7 +8,6 @@ from rest_framework.test import APIClient
 from appointments.models import Appointment, AppointmentStatus
 from catalog.models import Service, ServiceCategory
 from customers.models import Customer
-from payments.models import Payment, PaymentStatus
 
 User = get_user_model()
 
@@ -84,36 +83,14 @@ def test_counts_confirmed_upcoming_within_7_days_only(service, customer, staff_c
 
 
 @pytest.mark.django_db
-def test_revenue_this_month_sums_only_succeeded_payments(service, customer, staff_client):
+def test_revenue_this_month_sums_only_completed_appointments(service, customer, staff_client):
     now = timezone.now()
-    appt1 = _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
-    appt2 = _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
-    Payment.objects.create(
-        appointment=appt1, amount="500.00", currency="HNL", status=PaymentStatus.SUCCEEDED, paid_at=now
-    )
-    Payment.objects.create(
-        appointment=appt2, amount="300.00", currency="HNL", status=PaymentStatus.PENDING
-    )
+    _appointment(service, customer, status=AppointmentStatus.COMPLETED, start_datetime=now)
+    _appointment(service, customer, status=AppointmentStatus.CONFIRMED, start_datetime=now)
 
     response = staff_client.get(URL)
 
     assert response.data["revenue_this_month"] == "500.00"
-
-
-@pytest.mark.django_db
-def test_counts_pending_and_refund_pending_payments(service, customer, staff_client):
-    now = timezone.now()
-    appt1 = _appointment(service, customer, status=AppointmentStatus.PENDING, start_datetime=now)
-    appt2 = _appointment(service, customer, status=AppointmentStatus.CANCELLED, start_datetime=now, cancelled_at=now)
-    Payment.objects.create(appointment=appt1, amount="500.00", currency="HNL", status=PaymentStatus.PENDING)
-    Payment.objects.create(
-        appointment=appt2, amount="500.00", currency="HNL", status=PaymentStatus.REFUND_PENDING
-    )
-
-    response = staff_client.get(URL)
-
-    assert response.data["pending_payments"] == 1
-    assert response.data["refund_pending_payments"] == 1
 
 
 @pytest.mark.django_db

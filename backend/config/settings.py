@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     "catalog",
     "scheduling",
     "appointments",
-    "payments",
     "notifications",
     "reviews",
     "gallery",
@@ -152,7 +151,14 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "login": "5/min",
         "password_reset": "5/min",
+        "booking_create": "20/hour",
+        "appointment_action": "30/hour",
     },
+    # DRF's built-in Throttled exception message is English-only ("Request
+    # was throttled..."); every other user-facing error in this codebase is
+    # Spanish, so it's translated here rather than left as
+    # the one English leak in the API.
+    "EXCEPTION_HANDLER": "core.exception_handlers.spanish_throttle_exception_handler",
 }
 
 SIMPLE_JWT = {
@@ -187,16 +193,3 @@ if SENDGRID_API_KEY:
     ANYMAIL = {"SENDGRID_API_KEY": SENDGRID_API_KEY}
 else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
-
-# PixelPay
-# Sandbox mode uses PixelPay's own published sandbox credentials/endpoint
-# (see payments/services.py._build_settings) regardless of the key/hash
-# vars below, so the app is fully testable with no real credentials.
-# Switch PIXELPAY_SANDBOX to False and supply real credentials to charge
-# for real.
-
-PIXELPAY_SANDBOX = env.bool("PIXELPAY_SANDBOX", default=True)
-PIXELPAY_AUTH_KEY = env("PIXELPAY_AUTH_KEY", default="")
-PIXELPAY_AUTH_HASH = env("PIXELPAY_AUTH_HASH", default="")
-PIXELPAY_ENDPOINT = env("PIXELPAY_ENDPOINT", default="https://pixelpay.app")

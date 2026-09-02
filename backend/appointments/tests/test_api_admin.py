@@ -1,4 +1,5 @@
 from datetime import datetime, time, timedelta
+from unittest.mock import patch
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -107,6 +108,45 @@ def test_admin_can_create_a_walk_in_appointment_and_confirm_it_manually(staff_cl
 
 
 @pytest.mark.django_db
+@freeze_time(FROZEN_NOW)
+def test_admin_create_for_a_slot_taken_between_precheck_and_commit_returns_409(
+    staff_client, service, customer
+):
+    # Same authoritative-recheck race as the public booking endpoint's
+    # equivalent test -- the admin walk-in/phone-booking create action
+    # shares the same serializer/service-layer path, so it needs the same
+    # bypass to reach create_appointment()'s own SlotNotAvailableError
+    # catch (409) rather than the serializer's friendly pre-check (400).
+    target_date = _bookable_date_with_hours()
+    start = _at(target_date, 9)
+    Appointment.objects.create(
+        customer=customer,
+        service=service,
+        status=AppointmentStatus.CONFIRMED,
+        start_datetime=start,
+        end_datetime=start + timedelta(minutes=60),
+        price_snapshot=service.price,
+        duration_minutes_snapshot=service.duration_minutes,
+    )
+
+    with patch("appointments.serializers.is_slot_available", return_value=True):
+        response = staff_client.post(
+            "/api/v1/admin/appointments/",
+            {
+                "service": service.slug,
+                "start_datetime": start.isoformat(),
+                "customer": {
+                    "full_name": "Otro Cliente",
+                    "email": "otro@example.com",
+                    "phone": "77777777",
+                },
+            },
+        )
+
+    assert response.status_code == 409
+
+
+@pytest.mark.django_db
 def test_admin_list_filters_by_status(staff_client, appointment):
     other_customer = Customer.objects.create(
         full_name="Beto", email="beto@example.com", phone="88888888"
@@ -144,6 +184,38 @@ def test_admin_list_ignores_malformed_date_filter_instead_of_500(staff_client, a
 
 
 @pytest.mark.django_db
+def test_admin_list_ignores_malformed_date_to_filter_instead_of_500(staff_client, appointment):
+    response = staff_client.get("/api/v1/admin/appointments/?date_to=not-a-date")
+
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_admin_list_filters_by_service_id(staff_client, appointment):
+    other_category = ServiceCategory.objects.create(name="Otra categoría")
+    other_service = Service.objects.create(
+        category=other_category, name="Otro servicio", price="300.00", duration_minutes=30
+    )
+    other_customer = Customer.objects.create(
+        full_name="Beto", email="beto@example.com", phone="88888888"
+    )
+    Appointment.objects.create(
+        customer=other_customer,
+        service=other_service,
+        status=AppointmentStatus.CONFIRMED,
+        start_datetime=timezone.now() + timedelta(days=5),
+        end_datetime=timezone.now() + timedelta(days=5, hours=1),
+        price_snapshot=other_service.price,
+        duration_minutes_snapshot=other_service.duration_minutes,
+    )
+
+    response = staff_client.get(f"/api/v1/admin/appointments/?service={appointment.service_id}")
+
+    ids = [item["id"] for item in response.data]
+    assert ids == [appointment.id]
+
+
+@pytest.mark.django_db
 def test_admin_detail_includes_admin_notes_and_customer_contact(staff_client, appointment):
     appointment.admin_notes = "Nota privada"
     appointment.save()
@@ -152,31 +224,6 @@ def test_admin_detail_includes_admin_notes_and_customer_contact(staff_client, ap
 
     assert response.data["admin_notes"] == "Nota privada"
     assert response.data["customer_email"] == "ana@example.com"
-
-
-@pytest.mark.django_db
-def test_admin_detail_includes_null_payment_when_none_exists(staff_client, appointment):
-    response = staff_client.get(f"/api/v1/admin/appointments/{appointment.id}/")
-
-    assert response.data["payment"] is None
-
-
-@pytest.mark.django_db
-def test_admin_detail_includes_payment_summary_when_one_exists(staff_client, appointment):
-    from payments.models import Payment, PaymentStatus
-
-    Payment.objects.create(
-        appointment=appointment,
-        amount=appointment.price_snapshot,
-        currency="HNL",
-        status=PaymentStatus.SUCCEEDED,
-        pixelpay_payment_uuid="S-test-uuid",
-    )
-
-    response = staff_client.get(f"/api/v1/admin/appointments/{appointment.id}/")
-
-    assert response.data["payment"]["status"] == PaymentStatus.SUCCEEDED
-    assert response.data["payment"]["pixelpay_payment_uuid"] == "S-test-uuid"
 
 
 @pytest.mark.django_db

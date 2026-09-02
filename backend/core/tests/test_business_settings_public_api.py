@@ -12,7 +12,7 @@ PUBLIC_FIELDS = {
     "min_booking_notice_hours",
     "max_booking_window_days",
     "cancellation_deadline_hours",
-    "unpaid_hold_minutes",
+    "pending_hold_minutes",
     "default_buffer_minutes",
     "is_accepting_bookings",
 }

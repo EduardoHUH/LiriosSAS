@@ -17,7 +17,6 @@ from notifications.services import (
     send_booking_received_email,
     send_cancellation_email,
     send_password_reset_email,
-    send_payment_confirmed_email,
     send_reminder_email,
     send_reschedule_email,
 )
@@ -57,7 +56,6 @@ def appointment(service, customer):
     [
         (send_booking_received_email, NotificationType.BOOKING_CONFIRMATION),
         (send_booking_confirmed_email, NotificationType.BOOKING_CONFIRMATION),
-        (send_payment_confirmed_email, NotificationType.PAYMENT_CONFIRMATION),
         (send_cancellation_email, NotificationType.CANCELLATION),
         (send_reschedule_email, NotificationType.RESCHEDULE),
         (send_reminder_email, NotificationType.REMINDER),

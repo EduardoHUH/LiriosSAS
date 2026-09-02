@@ -30,9 +30,9 @@ class BusinessSettings(TimeStampedModel):
         default=24,
         help_text="Also governs the reschedule deadline.",
     )
-    unpaid_hold_minutes = models.PositiveIntegerField(
+    pending_hold_minutes = models.PositiveIntegerField(
         default=20,
-        help_text="How long a pending/awaiting-payment appointment holds its slot before auto-release.",
+        help_text="How long a pending appointment holds its slot before auto-release.",
     )
     default_buffer_minutes = models.PositiveIntegerField(
         default=10,

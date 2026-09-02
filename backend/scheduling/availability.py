@@ -13,7 +13,7 @@ from django.utils import timezone
 from appointments.models import (
     BLOCKING_APPOINTMENT_STATUSES,
     Appointment,
-    UNPAID_HOLD_STATUSES,
+    PENDING_HOLD_STATUSES,
 )
 from core.models import BusinessSettings
 from scheduling.models import BlockedTime, BusinessHours, SpecialDate
@@ -26,11 +26,11 @@ from scheduling.models import BlockedTime, BusinessHours, SpecialDate
 # having to re-derive "was this ever actually offered?" from scratch.
 SLOT_GRANULARITY_MINUTES = 15
 
-# Statuses that block a slot unconditionally (no unpaid-hold grace window
+# Statuses that block a slot unconditionally (no pending-hold grace window
 # to consider), i.e. everything blocking except the hold-expiry-sensitive
-# PENDING/AWAITING_PAYMENT states.
+# PENDING state.
 _UNCONDITIONALLY_BLOCKING_STATUSES = [
-    s for s in BLOCKING_APPOINTMENT_STATUSES if s not in UNPAID_HOLD_STATUSES
+    s for s in BLOCKING_APPOINTMENT_STATUSES if s not in PENDING_HOLD_STATUSES
 ]
 
 
@@ -80,12 +80,12 @@ def _blocked_ranges_for_date(local_date):
 def _busy_appointment_ranges_for_date(local_date, buffer_minutes, exclude_appointment_id=None):
     day_start, day_end = _day_bounds(local_date)
     hold_cutoff = timezone.now() - timedelta(
-        minutes=BusinessSettings.load().unpaid_hold_minutes
+        minutes=BusinessSettings.load().pending_hold_minutes
     )
 
     appointments = Appointment.objects.filter(
         Q(status__in=_UNCONDITIONALLY_BLOCKING_STATUSES)
-        | Q(status__in=UNPAID_HOLD_STATUSES, created_at__gte=hold_cutoff),
+        | Q(status__in=PENDING_HOLD_STATUSES, created_at__gte=hold_cutoff),
         start_datetime__lt=day_end,
         end_datetime__gt=day_start,
     )

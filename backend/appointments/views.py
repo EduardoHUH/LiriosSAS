@@ -22,15 +22,8 @@ from appointments.services import (
     reschedule_appointment,
     transition_appointment,
 )
+from core.throttles import AppointmentActionThrottle, BookingCreateThrottle
 from notifications.services import send_booking_confirmed_email
-from payments.serializers import CardChargeSerializer
-from payments.services import (
-    PaymentDeclinedError,
-    PaymentError,
-    PaymentGatewayError,
-    charge_appointment,
-    flag_refund_needed,
-)
 from reviews.serializers import ReviewCreateSerializer
 from reviews.services import ReviewNotAllowedError, create_review_for_appointment
 
@@ -38,6 +31,7 @@ from reviews.services import ReviewNotAllowedError, create_review_for_appointmen
 class AppointmentCreateView(generics.CreateAPIView):
     serializer_class = AppointmentCreateSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [BookingCreateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -61,6 +55,15 @@ class AppointmentTokenViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
     lookup_field = "access_token"
     lookup_url_kwarg = "token"
 
+    def get_throttles(self):
+        # `retrieve` (viewing a booking by token) is deliberately left
+        # unthrottled -- the unguessable access_token is itself the access
+        # control, and a legitimate customer may reload this page many
+        # times. The other mutating actions share a lighter throttle.
+        if self.action in ("cancel", "reschedule", "review"):
+            return [AppointmentActionThrottle()]
+        return super().get_throttles()
+
     @action(detail=True, methods=["post"])
     def cancel(self, request, token=None):
         appointment = self.get_object()
@@ -70,45 +73,7 @@ class AppointmentTokenViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet
             cancel_appointment(appointment, reason=input_serializer.validated_data["reason"])
         except (CancellationPolicyError, InvalidTransitionError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        flag_refund_needed(appointment)
         return Response(AppointmentCustomerSerializer(appointment).data)
-
-    @action(detail=True, methods=["post"])
-    def pay(self, request, token=None):
-        appointment = self.get_object()
-        input_serializer = CardChargeSerializer(data=request.data)
-        input_serializer.is_valid(raise_exception=True)
-        data = input_serializer.validated_data
-        card = {
-            "number": data["card_number"],
-            "cvv": data["card_cvv"],
-            "expire_month": data["card_expire_month"],
-            "expire_year": data["card_expire_year"],
-            "cardholder": data["cardholder"],
-        }
-        billing = {
-            "address": data["billing_address"],
-            "country": data["billing_country"],
-            "state": data["billing_state"],
-            "city": data["billing_city"],
-            "zip": data["billing_zip"],
-            "phone": data["billing_phone"],
-        }
-        try:
-            payment = charge_appointment(appointment, card=card, billing=billing)
-        except PaymentError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except PaymentDeclinedError as exc:
-            payload = {"detail": str(exc)}
-            if exc.errors:
-                payload["errors"] = exc.errors
-            return Response(payload, status=status.HTTP_400_BAD_REQUEST)
-        except PaymentGatewayError:
-            return Response(
-                {"detail": "No se pudo procesar el pago en este momento. Intenta de nuevo más tarde."},
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-        return Response(AppointmentCustomerSerializer(payment.appointment).data)
 
     @action(detail=True, methods=["post"])
     def reschedule(self, request, token=None):
@@ -148,7 +113,7 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
         return AppointmentAdminSerializer
 
     def get_queryset(self):
-        queryset = Appointment.objects.select_related("service", "customer", "payment").all()
+        queryset = Appointment.objects.select_related("service", "customer").all()
         params = self.request.query_params
 
         status_param = params.get("status")
@@ -219,7 +184,6 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
             )
         except InvalidTransitionError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        flag_refund_needed(appointment)
         return Response(AppointmentAdminSerializer(appointment).data)
 
     @action(detail=True, methods=["post"])
