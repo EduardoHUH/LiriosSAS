@@ -1,4 +1,5 @@
 import io
+import os
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -28,6 +29,22 @@ def category(db):
 def make_image_upload(name="foto.jpg", size=(10, 10), format="JPEG"):
     buffer = io.BytesIO()
     Image.new("RGB", size, color="red").save(buffer, format=format)
+    buffer.seek(0)
+    buffer.name = name
+    return buffer
+
+
+def make_oversized_image_upload(name="grande.jpg"):
+    # A solid-color image compresses far below the 5MB cap regardless of
+    # pixel dimensions, so this needs to actually be a valid, decodable
+    # image that's genuinely >5MB on disk -- random (incompressible) pixel
+    # data at a large enough canvas size does that, unlike garbage bytes
+    # (which just fail Django's own "is this an image at all" check before
+    # our custom size validator ever runs).
+    buffer = io.BytesIO()
+    size = (1400, 1400)
+    image = Image.frombytes("RGB", size, os.urandom(size[0] * size[1] * 3))
+    image.save(buffer, format="PNG")
     buffer.seek(0)
     buffer.name = name
     return buffer
@@ -116,6 +133,42 @@ def test_admin_create_rejects_non_image_file_disguised_as_jpg(staff_client, cate
             "price": "100.00",
             "duration_minutes": 30,
             "image": fake_image,
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "image" in response.data
+
+
+@pytest.mark.django_db
+def test_admin_create_rejects_oversized_image(staff_client, category):
+    response = staff_client.post(
+        "/api/v1/admin/services/",
+        {
+            "category": category.id,
+            "name": "Imagen grande",
+            "price": "100.00",
+            "duration_minutes": 30,
+            "image": make_oversized_image_upload(),
+        },
+        format="multipart",
+    )
+
+    assert response.status_code == 400
+    assert "image" in response.data
+
+
+@pytest.mark.django_db
+def test_admin_create_rejects_disallowed_image_format(staff_client, category):
+    response = staff_client.post(
+        "/api/v1/admin/services/",
+        {
+            "category": category.id,
+            "name": "Imagen bmp",
+            "price": "100.00",
+            "duration_minutes": 30,
+            "image": make_image_upload(name="foto.bmp", format="BMP"),
         },
         format="multipart",
     )

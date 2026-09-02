@@ -2,10 +2,11 @@ from django.db import models
 
 from catalog.models import ServiceCategory
 from core.models import TimeStampedModel
+from core.validators import validate_image_file
 
 
 class GalleryItem(TimeStampedModel):
-    image = models.ImageField(upload_to="gallery/")
+    image = models.ImageField(upload_to="gallery/", validators=[validate_image_file])
     category = models.ForeignKey(
         ServiceCategory,
         on_delete=models.SET_NULL,

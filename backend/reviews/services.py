@@ -2,7 +2,7 @@
 completed Appointment, never accepted as an open/anonymous submission.
 Views go through this module rather than creating Review rows directly."""
 
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 
 from appointments.models import AppointmentStatus
 from reviews.models import Review
@@ -26,11 +26,18 @@ def create_review_for_appointment(appointment, *, rating, comment):
         raise ReviewNotAllowedError("Ya dejaste una reseña para esta cita.")
 
     try:
-        return Review.objects.create(
-            appointment=appointment,
-            reviewer_name=appointment.customer.full_name,
-            rating=rating,
-            comment=comment,
-        )
+        # A savepoint of its own: catching IntegrityError without one would
+        # leave the connection's enclosing transaction marked broken for
+        # any caller sharing it (Django's documented "don't swallow a
+        # database exception inside atomic() without exiting through it"
+        # gotcha) -- this keeps the backstop safe to call from inside a
+        # larger transaction, not just in isolation.
+        with transaction.atomic():
+            return Review.objects.create(
+                appointment=appointment,
+                reviewer_name=appointment.customer.full_name,
+                rating=rating,
+                comment=comment,
+            )
     except IntegrityError:
         raise ReviewNotAllowedError("Ya dejaste una reseña para esta cita.") from None

@@ -24,7 +24,9 @@ class ReviewCreateSerializer(serializers.Serializer):
     reviewer_name are never client-supplied -- see reviews/services.py."""
 
     rating = serializers.IntegerField(min_value=1, max_value=5)
-    comment = serializers.CharField(required=False, allow_blank=True, default="")
+    comment = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
 
 
 class ReviewAdminSerializer(serializers.ModelSerializer):

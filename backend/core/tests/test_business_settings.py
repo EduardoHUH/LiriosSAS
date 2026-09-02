@@ -23,3 +23,16 @@ def test_save_always_forces_primary_key_to_one():
 
     assert settings_obj.pk == 1
     assert BusinessSettings.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_delete_is_a_no_op():
+    # The singleton row every slot-touching transaction locks
+    # (_acquire_booking_lock in appointments/services.py) must never
+    # actually disappear, so delete() is deliberately inert rather than
+    # deferring to Django's default hard-delete behavior.
+    settings_obj = BusinessSettings.load()
+
+    settings_obj.delete()
+
+    assert BusinessSettings.objects.filter(pk=1).exists()
