@@ -1,7 +1,7 @@
 from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import include, path
+from django.urls import include, path, re_path
+from django.views.static import serve
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -21,5 +21,17 @@ urlpatterns = [
     path("api/v1/admin/", include("reviews.admin_urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Wired directly to the underlying view rather than
+# django.conf.urls.static.static() -- that helper has DEBUG=False baked in
+# as a hard no-op (returns an empty urlpatterns list), regardless of any
+# outer `if` around it, so it can't be reused for production serving. See
+# the MEDIA_ROOT comment in config/settings.py for why this is served at
+# all in production (no other serving story exists for runtime-uploaded
+# photos, unlike the collected static/ files WhiteNoise handles).
+urlpatterns += [
+    re_path(
+        r"^%s(?P<path>.*)$" % settings.MEDIA_URL.lstrip("/"),
+        serve,
+        {"document_root": settings.MEDIA_ROOT},
+    ),
+]

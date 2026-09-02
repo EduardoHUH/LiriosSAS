@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -116,9 +117,29 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
+# Served by WhiteNoise (collected via `collectstatic`) -- covers the Django
+# admin's own CSS/JS and DRF's browsable-API assets, which have no other
+# serving story once DEBUG=False in production.
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+# Uploaded gallery/service photos. WhiteNoise isn't used here -- it only
+# serves files collected at deploy time, not runtime uploads. Served via
+# Django itself even in production (config/urls.py) -- non-ideal at scale
+# per Django's own docs, but a reasonable tradeoff for a small single-salon
+# site with a handful of images. Needs a persistent volume mounted here in
+# whatever hosts this, or uploads are lost on every redeploy (Railway's
+# filesystem is ephemeral by default) -- a deployment step, not code.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -168,6 +189,31 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
 }
+
+
+# Security (production)
+# Gated behind DEBUG, same idiom as the SENDGRID_API_KEY branch below --
+# local dev over plain http://localhost is untouched, these only bite once
+# DJANGO_DEBUG=False in a real deployment.
+
+# Railway (and most PaaS hosts) terminate TLS at the edge and forward plain
+# HTTP internally, so Django must trust X-Forwarded-Proto to know the
+# original request was HTTPS -- needed unconditionally, or SECURE_SSL_REDIRECT
+# would redirect-loop forever once enabled below.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SECURE_SSL_REDIRECT = not DEBUG
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+
+# Needed for the Django admin's own login form (session + CSRF-cookie based,
+# unlike the JWT API) to work once real HTTPS origins exist. Empty by
+# default -- fill in the real deployed backend URL when it exists.
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 
 # CORS
